@@ -1,4 +1,7 @@
-# Official Github Repo for CoNLL 2016 Shared Task 
+#Repo for CoNLL 2016 Shared Task participation
+
+CoNLL 2016 Shared Task - how to from the official documentation
+---------------------------------------------------------------
 
 
 ## Validator
