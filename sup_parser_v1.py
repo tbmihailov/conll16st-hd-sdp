@@ -179,8 +179,13 @@ class DiscourseParser_Sup_v1(object):
                 relation_dict['Type'] = 'Implicit'
 
             #sense = valid_senses[random.randint(0, len(valid_senses) - 1)]
+
             sense = clf.predict(curr_features_vec)
-            relation_dict['Sense'] = [sense]
+
+            #TO DO classmaping id to original class
+            class_mapping_id_to_orig = {}
+            sense_original = class_mapping_id_to_orig
+            relation_dict['Sense'] = [sense_original]
 
             output.write(json.dumps(relation_dict) + '\n')
 
