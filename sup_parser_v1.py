@@ -182,7 +182,7 @@ class DiscourseParser_Sup_v1(object):
 
             sense = clf.predict(curr_features_vec)
 
-            #TO DO classmaping id to original class
+            #TO DO classmaping id to original class mapping
             class_mapping_id_to_orig = {}
             sense_original = class_mapping_id_to_orig
             relation_dict['Sense'] = [sense_original]
