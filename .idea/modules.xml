@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/conll16st-hd-sdp.iml" filepath="$PROJECT_DIR$/.idea/conll16st-hd-sdp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../semeval2016-task3-caq/.idea/semeval2016-task3-caq.iml" filepath="$PROJECT_DIR$/../semeval2016-task3-caq/.idea/semeval2016-task3-caq.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../wtfrnn/.idea/wtfrnn.iml" filepath="$PROJECT_DIR$/../wtfrnn/.idea/wtfrnn.iml" />
+    </modules>
+  </component>
+</project>
