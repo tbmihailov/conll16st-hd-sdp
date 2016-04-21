@@ -78,12 +78,14 @@ class DiscourseParser_Sup_v1(object):
         w2v_num_feats = len(word2vec_model.syn0[0])
         # FEATURE EXTRACTION HERE
         doc_id = relation_dict['DocID']
-
+        print doc_id
         connective_tokenlist = [x[2] for x in relation_dict['Connective']['TokenList']]
         has_connective = 1 if len(connective_tokenlist) > 0 else 0
 
         features.append(has_connective)
 
+        print 'relation_dict:'
+        print relation_dict['Arg1']['TokenList']
         arg1_words = [parse[doc_id]['sentences'][x[3]]['words'][x[4]][0] for x in
                       relation_dict['Arg1']['TokenList']]
         print 'arg1: %s' % arg1_words
@@ -134,12 +136,19 @@ class DiscourseParser_Sup_v1(object):
             curr_senseses = relation_dict['Sense'] # list of senses example: u'Sense': [u'Contingency.Cause.Reason']
 
             for curr_sense in curr_senseses:
-                class_idx = class_mapping[x]
+                class_idx = class_mapping[curr_sense]
                 train_x.append(curr_features_vec)
                 train_y.append(class_idx)
 
+        print 'Training with %s items' % len(train_x)
+        start = time.time()
         clf.fit(train_x, train_y)
+        end = time.time()
+        print("Done in %s s" % (end - start))
+
         pickle.dump(clf, open(save_model_file, 'wb'))
+        print 'Model saved to %s' % save_model_file
+
 
 
 
@@ -147,6 +156,10 @@ class DiscourseParser_Sup_v1(object):
         output_dir = self.output_dir
 
         class_mapping = self.class_mapping
+        class_mapping_id_to_origtext = dict([(value, key) for key,value in class_mapping.iteritems()])
+        print 'class_mapping_id_to_origtext:'
+        print class_mapping_id_to_origtext
+
         word2vec_index2word_set = set(word2vec_model.index2word)
 
         relation_file = '%s/relations-no-senses.json' % input_dataset
@@ -155,23 +168,19 @@ class DiscourseParser_Sup_v1(object):
 
         relation_dicts = [json.loads(x) for x in open(relation_file)]
 
-        output = codecs.open('%s/output.json' % output_dir, 'wb', encoding='utf8')
+        output_file = '%s/output.json' % output_dir
+        output = codecs.open(output_file, 'wb', encoding='utf8')
 
         clf = SVC()
         clf = pickle.load(open(load_model_file, 'rb'))
         for i, relation_dict in enumerate(relation_dicts):
-            relation_dict['Arg1']['TokenList'] = \
-                    [x[2] for x in relation_dict['Arg1']['TokenList']]
-            relation_dict['Arg2']['TokenList'] = \
-                    [x[2] for x in relation_dict['Arg2']['TokenList']]
-            relation_dict['Connective']['TokenList'] = \
-                    [x[2] for x in relation_dict['Connective']['TokenList']]
-
+            print relation_dict
             curr_features_vec = DiscourseParser_Sup_v1.extract_features_as_vector_from_single_record( \
                 relation_dict=relation_dict, \
                 parse=parse, \
                 word2vec_model=word2vec_model, \
                 word2vec_index2word_set=word2vec_index2word_set)
+
 
             if len(relation_dict['Connective']['TokenList']) > 0:
                 relation_dict['Type'] = 'Explicit'
@@ -180,14 +189,22 @@ class DiscourseParser_Sup_v1(object):
 
             #sense = valid_senses[random.randint(0, len(valid_senses) - 1)]
 
-            sense = clf.predict(curr_features_vec)
+            sense = clf.predict([curr_features_vec])[0]
+            print 'predicted sense:%s' % sense
 
             #TO DO classmaping id to original class mapping
-            class_mapping_id_to_orig = {}
-            sense_original = class_mapping_id_to_orig
+            sense_original = class_mapping_id_to_origtext[sense]
             relation_dict['Sense'] = [sense_original]
 
+            #set output data
+            relation_dict['Arg1']['TokenList'] = \
+                    [x[2] for x in relation_dict['Arg1']['TokenList']]
+            relation_dict['Arg2']['TokenList'] = \
+                    [x[2] for x in relation_dict['Arg2']['TokenList']]
+            relation_dict['Connective']['TokenList'] = \
+                    [x[2] for x in relation_dict['Connective']['TokenList']]
             output.write(json.dumps(relation_dict) + '\n')
+            print 'output file written:%s' % output_file
 
 # SAMPLE RUN:
 # TRAIN:
@@ -212,7 +229,7 @@ if __name__ == '__main__':
     #run name for output params
     run_name = ""
     run_name = CommonUtilities.get_param_value("run_name", sys.argv, run_name)
-    if run_name!="":
+    if run_name != "":
         print('run_name:%s' % run_name)
     else:
         print('Error: missing input file parameter - run_name')
@@ -285,7 +302,9 @@ if __name__ == '__main__':
     if cmd == 'train':
         parser.train_sense(input_dataset=input_dataset, word2vec_model=model, save_model_file=model_file)
     elif cmd == 'train-test':
+        print class_mapping
         parser.train_sense(input_dataset=input_dataset, word2vec_model=model, save_model_file=model_file)
+        print '-------------------------------------------------------------'
         parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, load_model_file=model_file)
     elif cmd == 'test':
         parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, load_model_file=model_file)
