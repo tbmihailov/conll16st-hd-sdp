@@ -22,10 +22,11 @@ mkdir -p ${model_dir}
 
 
 #resources
-# word2vec_model=resources/external/w2v_embeddings/qatarliving_qc_size20_win10_mincnt5_rpl_skip1_phrFalse_2016_02_23.word2vec.bin
-word2vec_model=resources/closed_track/word2vec_google/GoogleNews-vectors-negative300.bin
+word2vec_model=resources/external/w2v_embeddings/qatarliving_qc_size20_win10_mincnt5_rpl_skip1_phrFalse_2016_02_23.word2vec.bin
+# word2vec_model=resources/closed_track/word2vec_google/GoogleNews-vectors-negative300.bin
 
-word2vec_load_bin=True
+word2vec_load_bin=False
 #word2vec_load_bin=True - for google pretrained embeddings
 
-. sup_parser_v1_run_partial.sh
+log_file=${run_name}_$(date +%y-%m-%d-%H-%M).log
+. sup_parser_v1_run_partial.sh > log_file

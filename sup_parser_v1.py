@@ -90,6 +90,8 @@ class DiscourseParser_Sup_v1(object):
 
         # print 'relation_dict:'
         # print relation_dict['Arg1']['TokenList']
+
+        # ARG 1
         arg1_words = [parse[doc_id]['sentences'][x[3]]['words'][x[4]][0] for x in
                       relation_dict['Arg1']['TokenList']]
         # print 'arg1: %s' % arg1_words
@@ -97,11 +99,20 @@ class DiscourseParser_Sup_v1(object):
                                                                 word2vec_index2word_set)
         features.extend(arg1_embedding)
 
+        # Connective embedding
+        connective_words = [parse[doc_id]['sentences'][x[3]]['words'][x[4]][0] for x in
+                            relation_dict['Connective']['TokenList']]
+        connective_embedding = AverageVectorsUtilities.makeFeatureVec(connective_words, word2vec_model, w2v_num_feats,
+                                                                word2vec_index2word_set)
+        features.extend(connective_embedding)
+
         arg2_words = [parse[doc_id]['sentences'][x[3]]['words'][x[4]][0] for x in
                       relation_dict['Arg2']['TokenList']]
         # print 'arg2: %s' % arg2_words
         arg2_embedding = AverageVectorsUtilities.makeFeatureVec(arg2_words, word2vec_model, w2v_num_feats,
                                                                 word2vec_index2word_set)
+
+
         features.extend(arg2_embedding)
 
         return features
