@@ -22,6 +22,10 @@ import json
 import random
 import sys
 
+import logging #word2vec logging
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+from logging import Logger
+
 # from sphinx.addnodes import index
 
 import validator
@@ -78,24 +82,24 @@ class DiscourseParser_Sup_v1(object):
         w2v_num_feats = len(word2vec_model.syn0[0])
         # FEATURE EXTRACTION HERE
         doc_id = relation_dict['DocID']
-        print doc_id
+        # print doc_id
         connective_tokenlist = [x[2] for x in relation_dict['Connective']['TokenList']]
         has_connective = 1 if len(connective_tokenlist) > 0 else 0
 
         features.append(has_connective)
 
-        print 'relation_dict:'
-        print relation_dict['Arg1']['TokenList']
+        # print 'relation_dict:'
+        # print relation_dict['Arg1']['TokenList']
         arg1_words = [parse[doc_id]['sentences'][x[3]]['words'][x[4]][0] for x in
                       relation_dict['Arg1']['TokenList']]
-        print 'arg1: %s' % arg1_words
+        # print 'arg1: %s' % arg1_words
         arg1_embedding = AverageVectorsUtilities.makeFeatureVec(arg1_words, word2vec_model, w2v_num_feats,
                                                                 word2vec_index2word_set)
         features.extend(arg1_embedding)
 
         arg2_words = [parse[doc_id]['sentences'][x[3]]['words'][x[4]][0] for x in
                       relation_dict['Arg2']['TokenList']]
-        print 'arg2: %s' % arg2_words
+        # print 'arg2: %s' % arg2_words
         arg2_embedding = AverageVectorsUtilities.makeFeatureVec(arg2_words, word2vec_model, w2v_num_feats,
                                                                 word2vec_index2word_set)
         features.extend(arg2_embedding)
@@ -104,8 +108,9 @@ class DiscourseParser_Sup_v1(object):
 
     def train_sense(self, input_dataset, word2vec_model, save_model_file):
         class_mapping = self.class_mapping
-
+        print class_mapping
         word2vec_index2word_set = set(word2vec_model.index2word)
+        model_dir = self.input_run
 
         relation_file = '%s/relations.json' % input_dataset # with senses to train
         relation_dicts = [json.loads(x) for x in open(relation_file)]
@@ -131,14 +136,18 @@ class DiscourseParser_Sup_v1(object):
                 word2vec_index2word_set=word2vec_index2word_set)
 
             #if i % 1000 == 0:
-            print '%s embeddings:%s'%(i, curr_features_vec)
+            #    print '%s embeddings:%s'%(i, curr_features_vec)
 
             curr_senseses = relation_dict['Sense'] # list of senses example: u'Sense': [u'Contingency.Cause.Reason']
+            #print '%s - %s'%(i, curr_senseses)
 
             for curr_sense in curr_senseses:
-                class_idx = class_mapping[curr_sense]
-                train_x.append(curr_features_vec)
-                train_y.append(class_idx)
+                if curr_sense in class_mapping:
+                    class_idx = class_mapping[curr_sense]
+                    train_x.append(curr_features_vec)
+                    train_y.append(class_idx)
+                else:
+                    logging.warn('Sense "%s" is not a valid class. Skip'%(curr_sense))
 
         print 'Training with %s items' % len(train_x)
         start = time.time()
@@ -148,9 +157,6 @@ class DiscourseParser_Sup_v1(object):
 
         pickle.dump(clf, open(save_model_file, 'wb'))
         print 'Model saved to %s' % save_model_file
-
-
-
 
     def classify_sense(self, input_dataset, word2vec_model, load_model_file):
         output_dir = self.output_dir
@@ -174,7 +180,7 @@ class DiscourseParser_Sup_v1(object):
         clf = SVC()
         clf = pickle.load(open(load_model_file, 'rb'))
         for i, relation_dict in enumerate(relation_dicts):
-            print relation_dict
+            # print relation_dict
             curr_features_vec = DiscourseParser_Sup_v1.extract_features_as_vector_from_single_record( \
                 relation_dict=relation_dict, \
                 parse=parse, \
@@ -190,7 +196,7 @@ class DiscourseParser_Sup_v1(object):
             #sense = valid_senses[random.randint(0, len(valid_senses) - 1)]
 
             sense = clf.predict([curr_features_vec])[0]
-            print 'predicted sense:%s' % sense
+            # print 'predicted sense:%s' % sense
 
             #TO DO classmaping id to original class mapping
             sense_original = class_mapping_id_to_origtext[sense]
@@ -295,10 +301,11 @@ if __name__ == '__main__':
 
     #RUN PARSER
     parser = DiscourseParser_Sup_v1(valid_senses=valid_senses, input_run=input_run, input_dataset=input_dataset,\
-                                    output_dir=output_dir, input_params=None, input_features=None,\
+                                    output_dir=output_dir, \
+                                    input_params=None, input_features=None,\
                                     class_mapping=class_mapping)
 
-    model_file = '%s/%s.modelfile' % (output_dir, run_name)
+    model_file = '%s/%s.modelfile' % (input_run, run_name)
     if cmd == 'train':
         parser.train_sense(input_dataset=input_dataset, word2vec_model=model, save_model_file=model_file)
     elif cmd == 'train-test':

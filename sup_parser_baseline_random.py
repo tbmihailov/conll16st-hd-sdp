@@ -18,7 +18,6 @@ The parse should take three arguments
 Note that we have to fill in 'Type' field as Explicti and Implicit, 
 but that will be overridden by the evaluator. 
 """
-
 import codecs
 import json
 import random
@@ -28,8 +27,8 @@ import validator
 
 class DiscourseParser(object):
     """Sample discourse relation sense classifier
-    
-    This simply classifies each instance randomly. 
+
+    This simply classifies each instance randomly.
     """
 
     def __init__(self):
@@ -68,7 +67,6 @@ if __name__ == '__main__':
         valid_senses = validator.EN_SENSES
     elif language == 'zh':
         valid_senses = validator.ZH_SENSES
-
     parser = DiscourseParser()
     parser.classify_sense(input_dataset, output_dir, valid_senses)
 
