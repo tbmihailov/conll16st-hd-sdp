@@ -115,6 +115,11 @@ class CommonUtilities(object):
         else:
             feats_dict[feat_key]=increment_val
 
+    @staticmethod
+    def append_features_with_vectors(feats, vector, feat_prefix):
+        for i in range(0, len(vector)):
+            CommonUtilities.increment_feat_val(feats, '%s%s' % (feat_prefix, str(i).zfill(4)), vector[i])
+
 
 if __name__ == '__main__':
     num_features = 1000 #300   # Word vector dimensionality
