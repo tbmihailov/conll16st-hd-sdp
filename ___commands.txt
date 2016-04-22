@@ -1,0 +1,5 @@
+#run parser
+bash sup_parser_v1_run_train2016_dev2016.sh svm_background_google
+
+# run command in background
+nohup bash sup_parser_v1_run_train2016_dev2016.sh svm_background_google> background.out 2> background.err < /dev/null &
