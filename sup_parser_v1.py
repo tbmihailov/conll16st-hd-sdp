@@ -21,12 +21,28 @@ import codecs
 import json
 import random
 import sys
+from datetime import datetime
 
 import logging #word2vec logging
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-from logging import Logger
+
+logFormatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s]: %(levelname)s : %(message)s')
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# Enable file logging
+logFileName = '%s/%s-%s.log'%('logs', 'sup_parser_v1', '{:%Y-%m-%d-%H-%M-%S}'.format(datetime.now()))
+fileHandler = logging.FileHandler(logFileName, 'wb')
+fileHandler.setFormatter(logFormatter)
+logger.addHandler(fileHandler)
+
+#Enable console logging
+consoleHandler = logging.StreamHandler(sys.stdout)
+consoleHandler.setFormatter(logFormatter)
+logger.addHandler(consoleHandler)
 
 # from sphinx.addnodes import index
+
+from sklearn import preprocessing
 
 import validator
 from Common_Utilities import CommonUtilities
@@ -60,7 +76,8 @@ class DiscourseParser_Sup_v1(object):
     This simply classifies each instance randomly. 
     """
 
-    def __init__(self, valid_senses, input_run, input_dataset, output_dir, input_params, input_features,class_mapping):
+    def __init__(self, valid_senses, input_run, input_dataset, output_dir, input_params, input_features,class_mapping
+                 , scale_range=(-1, 1)):
         self.valid_senses = valid_senses
         self.input_run = input_run
         self.input_dataset = input_dataset
@@ -68,6 +85,7 @@ class DiscourseParser_Sup_v1(object):
         self.input_params = input_params
         self.input_features = input_features
         self.class_mapping = class_mapping
+        self.scale_range = scale_range
 
         pass
 
@@ -151,6 +169,36 @@ class DiscourseParser_Sup_v1(object):
         # similarity for  tag type
         tag_type_start_1 = 'RB'
         tag_type_start_2 = 'RB'
+        postagged_sim = DiscourseParser_Sup_v1.calculate_postagged_similarity_from_taggeddata_and_tokens(
+            text1_tokens_in_vocab=tokens_in_vocab_1,
+            text2_tokens_in_vocab=tokens_in_vocab_2,
+            model=model,
+            tag_type_start_1=tag_type_start_1,
+            tag_type_start_2=tag_type_start_2)
+
+        input_data_wordvectors.append(postagged_sim)
+        input_data_sparse_features[
+            'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
+            postagged_sim
+
+        # similarity for  tag type
+        tag_type_start_1 = 'DT'
+        tag_type_start_2 = 'DT'
+        postagged_sim = DiscourseParser_Sup_v1.calculate_postagged_similarity_from_taggeddata_and_tokens(
+            text1_tokens_in_vocab=tokens_in_vocab_1,
+            text2_tokens_in_vocab=tokens_in_vocab_2,
+            model=model,
+            tag_type_start_1=tag_type_start_1,
+            tag_type_start_2=tag_type_start_2)
+
+        input_data_wordvectors.append(postagged_sim)
+        input_data_sparse_features[
+            'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
+            postagged_sim
+
+        # similarity for  tag type
+        tag_type_start_1 = 'PR'
+        tag_type_start_2 = 'PR'
         postagged_sim = DiscourseParser_Sup_v1.calculate_postagged_similarity_from_taggeddata_and_tokens(
             text1_tokens_in_vocab=tokens_in_vocab_1,
             text2_tokens_in_vocab=tokens_in_vocab_2,
@@ -322,16 +370,21 @@ class DiscourseParser_Sup_v1(object):
         # POS tags similarities
         postag_feats_vec, postag_feats_sparse = DiscourseParser_Sup_v1.get_postagged_sim_fetures(
             tokens_data_text1=arg1_tokens, tokens_data_text2=arg2_tokens, postagged_data_dict=parse,
-            word2vec_model=model, word2vec_num_features=word2vec_num_features, word2vec_index2word_set=word2vec_index2word_set)
+            model=model, word2vec_num_features=word2vec_num_features,
+            word2vec_index2word_set=word2vec_index2word_set)
 
         features.extend(postag_feats_vec)
         sparse_feats_dict.update(postag_feats_sparse)
 
-        return features
+        for i in range(0, len(features)):
+            if math.isnan(features[i]):
+                features[i] = 0.00
 
-    def train_sense(self, input_dataset, word2vec_model, save_model_file):
+        return features #, sparse_feats_dict
+
+    def train_sense(self, input_dataset, word2vec_model, save_model_file, scale_features, save_scale_file):
         class_mapping = self.class_mapping
-        print class_mapping
+        logging.debug(class_mapping)
         word2vec_index2word_set = set(word2vec_model.index2word)
         model_dir = self.input_run
 
@@ -358,36 +411,51 @@ class DiscourseParser_Sup_v1(object):
                 word2vec_model=word2vec_model,\
                 word2vec_index2word_set=word2vec_index2word_set)
 
-            #if i % 1000 == 0:
-            #    print '%s embeddings:%s'%(i, curr_features_vec)
+            if (i+1) % 1000 == 0:
+                print '%s of %s' % (i, len(relation_dicts))
+                logging.info('%s of %s' % (i, len(relation_dicts)))
+                print '%s features:%s'%(i, curr_features_vec)
 
             curr_senseses = relation_dict['Sense'] # list of senses example: u'Sense': [u'Contingency.Cause.Reason']
-            #print '%s - %s'%(i, curr_senseses)
+            # logging.debug('%s - %s'%(i, curr_senseses))
 
             for curr_sense in curr_senseses:
                 if curr_sense in class_mapping:
                     class_idx = class_mapping[curr_sense]
                     train_x.append(curr_features_vec)
                     train_y.append(class_idx)
-                else:
-                    logging.warn('Sense "%s" is not a valid class. Skip'%(curr_sense))
+                #else:
+                #     logging.warn('Sense "%s" is not a valid class. Skip'%(curr_sense))
 
-        print 'Training with %s items' % len(train_x)
+
+        scaler = preprocessing.MinMaxScaler(self.scale_range)
+        if scale_features:
+            logging.info('Scaling %s items with %s features..' % (len(train_x),len(train_x[0])))
+            start = time.time()
+            train_x = scaler.fit_transform(train_x)
+            end = time.time()
+            logging.info("Done in %s s" % (end - start))
+            pickle.dump(scaler, open(save_scale_file, 'wb'))
+            logging.info('Scale feats ranges saved to %s' % save_scale_file)
+        else:
+            logging.info("No scaling!")
+
+        logging.info('Training with %s items' % len(train_x))
         start = time.time()
         clf.fit(train_x, train_y)
         end = time.time()
-        print("Done in %s s" % (end - start))
+        logging.info("Done in %s s" % (end - start))
 
         pickle.dump(clf, open(save_model_file, 'wb'))
-        print 'Model saved to %s' % save_model_file
+        logging.info('Model saved to %s' % save_model_file)
 
-    def classify_sense(self, input_dataset, word2vec_model, load_model_file):
+    def classify_sense(self, input_dataset, word2vec_model, load_model_file, scale_features, load_scale_file):
         output_dir = self.output_dir
 
         class_mapping = self.class_mapping
         class_mapping_id_to_origtext = dict([(value, key) for key,value in class_mapping.iteritems()])
-        print 'class_mapping_id_to_origtext:'
-        print class_mapping_id_to_origtext
+        logging.debug('class_mapping_id_to_origtext:')
+        logging.debug(class_mapping_id_to_origtext)
 
         word2vec_index2word_set = set(word2vec_model.index2word)
 
@@ -402,6 +470,15 @@ class DiscourseParser_Sup_v1(object):
 
         clf = SVC()
         clf = pickle.load(open(load_model_file, 'rb'))
+
+        if scale_features:
+            # scaler = preprocessing.MinMaxScaler(self.scale_range)
+            # scaler.transform(feats)
+            scaler = pickle.load(open(load_scale_file, 'rb'))
+            logger.info('Scaling is enabled!')
+        else:
+            logger.info('NO scaling!')
+
         for i, relation_dict in enumerate(relation_dicts):
             # print relation_dict
             curr_features_vec = DiscourseParser_Sup_v1.extract_features_as_vector_from_single_record( \
@@ -418,6 +495,9 @@ class DiscourseParser_Sup_v1(object):
 
             #sense = valid_senses[random.randint(0, len(valid_senses) - 1)]
 
+            if scale_features:
+                curr_features_vec = scaler.transform([curr_features_vec])[0]
+
             sense = clf.predict([curr_features_vec])[0]
             # print 'predicted sense:%s' % sense
 
@@ -433,7 +513,12 @@ class DiscourseParser_Sup_v1(object):
             relation_dict['Connective']['TokenList'] = \
                     [x[2] for x in relation_dict['Connective']['TokenList']]
             output.write(json.dumps(relation_dict) + '\n')
-            print 'output file written:%s' % output_file
+
+            if (i+1) % 1000 == 0:
+                print '%s of %s' % (i, len(relation_dicts))
+                logging.info('%s of %s' % (i, len(relation_dicts)))
+                print '%s features:%s' % (i, curr_features_vec)
+        logging.info('output file written:%s' % output_file)
 
 # SAMPLE RUN:
 # TRAIN:
@@ -453,52 +538,57 @@ if __name__ == '__main__':
 
     cmd = 'train'
     cmd = CommonUtilities.get_param_value("cmd", sys.argv, cmd)
-    print 'cmd:%s'%cmd
+    logging.info('cmd:%s'%cmd)
 
     #run name for output params
     run_name = ""
     run_name = CommonUtilities.get_param_value("run_name", sys.argv, run_name)
     if run_name != "":
-        print('run_name:%s' % run_name)
+        logging.info(('run_name:%s' % run_name))
     else:
-        print('Error: missing input file parameter - run_name')
+        logging.error('Error: missing input file parameter - run_name')
         quit()
+
+    # Perform scaling on the features
+    scale_features = False
+    scale_features = CommonUtilities.get_param_value_bool("scale_features", sys.argv, scale_features)
+    logging.info('scale_features:{0}'.format(scale_features))
 
     #w2v/doc2vec params
     # word2vec model file
     word2vec_model_file = ""  # "qatarliving\\qatarliving_size400_win10_mincnt10.word2vec.bin"
     word2vec_model_file = CommonUtilities.get_param_value("word2vec_model", sys.argv)
     if word2vec_model_file != "":
-        print('Word2Vec File:\n\t%s' % word2vec_model_file)
+        logging.info('Word2Vec File:\n\t%s' % word2vec_model_file)
     # else:
-    #    print('Error: missing input file parameter - word2vec_model_file')
+    #    logging.error('Error: missing input file parameter - word2vec_model_file')
     #    quit()
 
     # wordclusters_mapping_file
     wordclusters_mapping_file = ""  # "qatarliving\\qatarliving_size400_win10_mincnt10.word2vec.bin"
     wordclusters_mapping_file = CommonUtilities.get_param_value("wordclusters_mapping_file", sys.argv)
     if wordclusters_mapping_file != "":
-        print('wordclusters_mapping_file:\n\t%s' % wordclusters_mapping_file)
+        logging.info('wordclusters_mapping_file:\n\t%s' % wordclusters_mapping_file)
 
     doc2vec_model_file = ""  # "qatarliving\\qatarliving_size400_win10_mincnt10.word2vec.bin"
     doc2vec_model_file = CommonUtilities.get_param_value("doc2vec_model", sys.argv)
     if doc2vec_model_file != "":
-        print('Doc2Vec File:\n\t%s' % doc2vec_model_file)
+        logging.info('Doc2Vec File:\n\t%s' % doc2vec_model_file)
 
     if doc2vec_model_file == '' and word2vec_model_file == '':
-        print('Error: missing input file parameter - either doc2vec_model_file or word2vec_model_file')
+        logging.error('Error: missing input file parameter - either doc2vec_model_file or word2vec_model_file')
         quit()
 
     # use id for vector retrieval from doc2vec
     use_id_for_vector = False
     if sys.argv.count('-use_id_for_vector') > 0:
         use_id_for_vector = True
-    print('use_id_for_vector:{0}'.format(use_id_for_vector))
+    logging.info('use_id_for_vector:{0}'.format(use_id_for_vector))
 
     # load word2vec model as binary file
     word2vec_load_bin = False
     word2vec_load_bin = CommonUtilities.get_param_value_bool("word2vec_load_bin", sys.argv, word2vec_load_bin)
-    print('word2vec_load_bin:{0}'.format(word2vec_load_bin))
+    logging.info('word2vec_load_bin:{0}'.format(word2vec_load_bin))
 
     is_doc2vec_model = False
     # load word2vec model
@@ -514,8 +604,8 @@ if __name__ == '__main__':
     use_id_for_vector = use_id_for_vector and is_doc2vec_model
 
     word2vec_num_features = len(model.syn0[0])
-    print "Embeddings feature vectors length:%s" % word2vec_num_features
-    print "Model syn0 len=%d" % (len(model.syn0))
+    logging.info("Embeddings feature vectors length:%s" % word2vec_num_features)
+    logging.info("Model syn0 len=%d" % (len(model.syn0)))
 
     # define classes
     class_mapping = dict([(val, idx) for idx, val in enumerate(valid_senses)])
@@ -529,16 +619,23 @@ if __name__ == '__main__':
                                     class_mapping=class_mapping)
 
     model_file = '%s/%s.modelfile' % (input_run, run_name)
+    scale_file = '%s/%s.scalerange' % (input_run, run_name)
     if cmd == 'train':
-        parser.train_sense(input_dataset=input_dataset, word2vec_model=model, save_model_file=model_file)
+        logging.info('-----------TRAIN---------------------------------')
+        parser.train_sense(input_dataset=input_dataset, word2vec_model=model, save_model_file=model_file,
+                           scale_features=scale_features, save_scale_file=scale_file)
     elif cmd == 'train-test':
-        print class_mapping
-        parser.train_sense(input_dataset=input_dataset, word2vec_model=model, save_model_file=model_file)
-        print '-------------------------------------------------------------'
-        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, load_model_file=model_file)
+        logging.debug(class_mapping)
+        parser.train_sense(input_dataset=input_dataset, word2vec_model=model, save_model_file=model_file,
+                           scale_features=scale_features, save_scale_file=scale_file)
+        logging.info('-------------------------------------------------------------')
+        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, load_model_file=model_file,
+                           scale_features=scale_features, load_scale_file=scale_file)
     elif cmd == 'test':
-        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, load_model_file=model_file)
+        logging.info('-----------TEST----------------------------------')
+        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, load_model_file=model_file,
+                           scale_features=scale_features, load_scale_file=scale_file)
     else:
-        print "command unknown: %s. Either -cmd:train or -cmd:test expected"%(cmd)
+        logging.error("command unknown: %s. Either -cmd:train or -cmd:test expected"%(cmd))
 
 
