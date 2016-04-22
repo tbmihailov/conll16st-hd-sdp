@@ -31,3 +31,5 @@ python validator.py en ${output_dir}/output.json
 
 #score
 python scorer.py ${input_dataset_test}/relations.json ${output_dir}/output.json
+
+python tira_sup_eval.py ${input_dataset_test} ${output_dir} ${output_dir}
