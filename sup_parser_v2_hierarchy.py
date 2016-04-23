@@ -75,7 +75,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
 
     def train_sense(self, input_dataset, word2vec_model, save_model_file_basename, scale_features,
                     save_scale_file_basename, hierachical_classifier=False):
-        class_mapping = self.class_mapping
+        class_mapping_flat = self.class_mapping
 
         # Classes:
         # 'Temporal.Asynchronous.Precedence',
@@ -135,9 +135,9 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
                       'EntRel': {'ID': 5},
                       }
 
-        logging.debug(class_mapping)
+        logging.debug(class_mapping_flat)
         word2vec_index2word_set = set(word2vec_model.index2word)
-        model_dir = self.input_run
+        # model_dir = self.input_run
 
         relation_file = '%s/relations.json' % input_dataset  # with senses to train
         relation_dicts = [json.loads(x) for x in open(relation_file)]
@@ -145,15 +145,16 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
         parse_file = '%s/parses.json' % input_dataset
         parse = json.load(codecs.open(parse_file, encoding='utf8'))
 
-        random.seed(10)
-
-        clf = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
-                  degree=3, gamma='auto', kernel='rbf',
-                  max_iter=-1, probability=False, random_state=None, shrinking=True,
-                  tol=0.001, verbose=False)
-
+        # FEATURE EXTRACTION
         train_x = []
         train_y = []
+        train_y_txt_level2 = []
+        train_y_txt_level1 = []
+        train_y_relation_types = []  # 1 Explicit, 0 Non-explicit
+
+        logging.info('=====EXTRACTING FEATURES======')
+
+        logging.info('Extracting features from %s items..' % len(train_x))
         for i, relation_dict in enumerate(relation_dicts):
 
             curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
@@ -165,19 +166,29 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
             if (i + 1) % 1000 == 0:
                 print '%s of %s' % (i, len(relation_dicts))
                 logging.info('%s of %s' % (i, len(relation_dicts)))
-                print '%s features:%s' % (i, curr_features_vec)
+                print '%s features:%s' % (i, curr_features_vec[:10])
 
-            curr_senseses = relation_dict['Sense']  # list of senses example: u'Sense': [u'Contingency.Cause.Reason']
-            # logging.debug('%s - %s'%(i, curr_senseses))
+            curr_senses = relation_dict['Sense']  # list of senses example: u'Sense': [u'Contingency.Cause.Reason']
+            # logging.debug('%s - %s'%(i, curr_senses))
 
-            for curr_sense in curr_senseses:
-                if curr_sense in class_mapping:
-                    class_idx = class_mapping[curr_sense]
-                    train_x.append(curr_features_vec)
-                    train_y.append(class_idx)
-                    # else:
-                    #     logging.warn('Sense "%s" is not a valid class. Skip'%(curr_sense))
+            for curr_sense in curr_senses:
+                train_x.append(curr_features_vec)
+                train_y.append(0)
 
+                train_y_txt_level2.append(curr_sense)
+                if '.' in curr_sense:
+                    train_y_txt_level1.append(curr_sense.split('.')[0])
+                else:
+                    train_y_txt_level1.append(curr_sense)
+
+                if relation_dict['Type'] == 'Explicit':
+                    train_y_relation_types.append(1)
+                else:
+                    train_y_relation_types.append(0)
+
+
+        #SCALE FEATURES
+        logging.info('=====SCALING======')
         scaler = preprocessing.MinMaxScaler(self.scale_range)
         if scale_features:
             logging.info('Scaling %s items with %s features..' % (len(train_x), len(train_x[0])))
@@ -190,14 +201,91 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
         else:
             logging.info("No scaling!")
 
-        logging.info('Training with %s items' % len(train_x))
-        start = time.time()
-        clf.fit(train_x, train_y)
-        end = time.time()
-        logging.info("Done in %s s" % (end - start))
+        logging.info('======HIERARCHICAL TRAINING======')
 
-        pickle.dump(clf, open(save_model_file_basename, 'wb'))
-        logging.info('Model saved to %s' % save_model_file_basename)
+        def filter_items_train_classifier_and_save_model(classifier_name, class_mapping_curr, relation_type, train_x, train_y_txt,
+                                                         train_y_relation_types, save_model_file):
+            """
+            Filters items by given params, trains the classifier and saves the model to a file.
+            Args:
+                classifier_name: Name of the classifier used for saving the models
+                class_mapping_curr: Class mapping to map train_y_txt to int. Filters items
+                relation_type: 1 Explicit, 0 Non Explicit, Filters items with this relation type only
+                train_x: Train samples
+                train_y_txt: Train sample classes - Text class that will be filtered using class_mapping_curr dict
+                train_y_relation_types: Train type indicators if sample is explicit or implicit.
+                Only items with relation_type will be used for training
+                save_model_file: Name of the file in which the model will be saved
+            Returns:
+                Filters items and trains classifier
+            """
+            logging.info('======[%s] - filter_items_train_classifier_and_save_model======' % classifier_name)
+
+            train_x_curr = []
+            train_y_curr = []
+
+            # Filtering items
+            logging.info('Filtering %s items...' % len(train_x))
+            start = time.time()
+            for i in range(0, len(train_x)):
+                if train_y_txt[i] in class_mapping_curr and train_y_relation_types[i] == relation_type:
+                    train_x_curr.append(train_x[i])
+                    train_y_curr.append(class_mapping_curr[train_y_txt[i]])
+            end = time.time()
+            logging.info("Done in %s s" % (end - start))
+
+            # Training
+            # Classifier params
+            classifier_current = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+                                     degree=3, gamma='auto', kernel='rbf',
+                                     max_iter=-1, probability=False, random_state=None, shrinking=True,
+                                     tol=0.001, verbose=False)
+            print 'Classifier:\n%s' % classifier_current
+
+            start = time.time()
+            logging.info('Training with %s items...' % len(train_x_curr))
+            classifier_current.fit(train_x_curr, train_y_curr)
+            end = time.time()
+            logging.info("Done in %s s" % (end - start))
+
+            # Saving model
+            pickle.dump(classifier_current, open(save_model_file, 'wb'))
+            logging.info('Model saved to %s' % save_model_file)
+
+        ###########################
+        ### FILTER AND TRAIN ######
+        ###########################
+
+        # Classifier: Explicit, Level 1
+        relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
+        classifier_name = 'EXP_LEVEL1'
+        # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
+        class_mapping_curr = class_mapping_flat
+        save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
+
+        filter_items_train_classifier_and_save_model(classifier_name=classifier_name,
+                                        class_mapping_curr=class_mapping_curr,
+                                        relation_type=relation_type,
+                                        train_x = train_x,
+                                        train_y_txt=train_y_txt_level2,
+                                                     train_y_relation_types=train_y_relation_types,
+                                        save_model_file=save_model_file_classifier_current)
+
+
+        # Classifier: Non-Explicit, Level 1
+        relation_type = 0  # 1 Explicit, 0 Non-Explicit, -1 All
+        classifier_name = 'NONEXP_LEVEL1'
+        # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
+        class_mapping_curr = class_mapping_flat
+        save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
+
+        filter_items_train_classifier_and_save_model(classifier_name=classifier_name,
+                                                     class_mapping_curr=class_mapping_curr,
+                                                     relation_type=relation_type,
+                                                     train_x=train_x,
+                                                     train_y_txt=train_y_txt_level2,
+                                                     train_y_relation_types=train_y_relation_types,
+                                                     save_model_file=save_model_file_classifier_current)
 
     def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features,
                        load_scale_file_basename, hierachical_classifier=False):
@@ -219,8 +307,6 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
         output_file = '%s/output.json' % output_dir
         output = codecs.open(output_file, 'wb', encoding='utf8')
 
-        clf = SVC()
-        clf = pickle.load(open(load_model_file_basename, 'rb'))
 
         if scale_features:
             # scaler = preprocessing.MinMaxScaler(self.scale_range)
@@ -229,6 +315,23 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
             logger.info('Scaling is enabled!')
         else:
             logger.info('NO scaling!')
+
+
+        # Classifier: Explicit, Level 1
+        relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
+        classifier_name = 'EXP_LEVEL1'
+        # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
+        class_mapping_curr = self.class_mapping
+        load_model_file_classifier_current = '%s_%s.modelfile' % (load_model_file_basename, classifier_name)
+        classifier_level1_exp = pickle.load(open(load_model_file_classifier_current, 'rb'))
+
+        # Classifier: Non-Explicit, Level 1
+        relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
+        classifier_name = 'NONEXP_LEVEL1'
+        # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
+        class_mapping_curr = self.class_mapping
+        load_model_file_classifier_current = '%s_%s.modelfile' % (load_model_file_basename, classifier_name)
+        classifier_level1_nonexp = pickle.load(open(load_model_file_classifier_current, 'rb'))
 
         for i, relation_dict in enumerate(relation_dicts):
             # print relation_dict
@@ -248,7 +351,11 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
             if scale_features:
                 curr_features_vec = scaler.transform([curr_features_vec])[0]
 
-            sense = clf.predict([curr_features_vec])[0]
+            if relation_dict['Type'] == 'Explicit':
+                sense = classifier_level1_exp.predict([curr_features_vec])[0]
+            else:
+                sense = classifier_level1_nonexp.predict([curr_features_vec])[0]
+
             # print 'predicted sense:%s' % sense
 
             # TO DO classmaping id to original class mapping
