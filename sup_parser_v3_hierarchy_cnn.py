@@ -84,7 +84,7 @@ def pad_sentence(sentence, sentence_length, padding_word="<PAD/>"):
 
     return new_sentence
 
-class DiscourseSenseClassifier_Sup_v2_Hierarchical_CNN(object):
+class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
     """Sample discourse relation sense classifier
     """
 
@@ -236,10 +236,11 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical_CNN(object):
         test_label = train_y_curr[total_train/5:]
         logging.info("Split: Train - %s, Test - %s"(len(train_dataset), len(test_dataset)))
 
-        shuffling = sys.argv[7]
-        filter_sizes_1 = int(sys.argv[8])
-        filter_sizes_2 = int(sys.argv[9])
-        filter_sizes_3 = int(sys.argv[10])
+        shuffling = "n"
+        filter_sizes_1 = 3
+        filter_sizes_2 = 4
+        filter_sizes_3 = 5
+
 
         cnn = TextCNN(train_dataset=train_dataset, train_labels=train_label, valid_dataset=test_dataset,
                       valid_labels=test_label, embeddings=embeddings, vocabulary=vocabulary,
@@ -248,7 +249,8 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical_CNN(object):
                       filter_sizes_1=filter_sizes_1,
                       filter_sizes_2=filter_sizes_2, filter_sizes_3=filter_sizes_3,
                       dropout_keep_prob=dropout_keep_prob,
-                      lexical=lexical, shuffling=shuffling)
+                      #  lexical=lexical,
+                      shuffling=shuffling)
         logging.info(cnn.valid_accuracy)
         logging.info("\n")
         logging.info("Fold test accuracy: " + str(cnn.valid_accuracy))
@@ -412,7 +414,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical_CNN(object):
                 if len(curr_features_implicit[const.FIELD_ARG2]) > max_arg_length:
                     max_arg_length = len(curr_features_implicit[const.FIELD_ARG2])
 
-                rel_len = len(curr_features_implicit[FIELD_ARG1]) + len(curr_features_implicit[FIELD_ARG1]) + \
+                rel_len = len(curr_features_implicit[const.FIELD_ARG1]) + len(curr_features_implicit[const.FIELD_ARG1]) + \
                           len(curr_features_implicit[const.FIELD_CONNECTIVE])
 
                 # determine max relation length
@@ -477,7 +479,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical_CNN(object):
         class_mapping_curr = class_mapping_flat
         save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
 
-        DiscourseSenseClassifier_Sup_v2_Hierarchical_CNN\
+        DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN\
             .filter_items_train_classifier_and_save_model_cnn(classifier_name=classifier_name,
                                                             class_mapping_curr=class_mapping_curr,
                                                             relation_type=relation_type,
@@ -498,7 +500,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical_CNN(object):
         class_mapping_curr = class_mapping_flat
         save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
 
-        DiscourseSenseClassifier_Sup_v2_Hierarchical_CNN\
+        DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN\
             .filter_items_train_classifier_and_save_model_logreg(classifier_name=classifier_name,
                                                                 class_mapping_curr=class_mapping_curr,
                                                                 relation_type=relation_type,
@@ -713,10 +715,10 @@ if __name__ == '__main__':
     CommonUtilities.write_dictionary_to_file(class_mapping, class_mapping_file)
 
     # RUN PARSER
-    parser = DiscourseSenseClassifier_Sup_v2_Hierarchical_CNN(valid_senses=valid_senses, input_run=input_run, input_dataset=input_dataset, \
-                                    output_dir=output_dir, \
-                                    input_params=None, input_features=None, \
-                                    class_mapping=class_mapping)
+    parser = DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(valid_senses=valid_senses, input_run=input_run, input_dataset=input_dataset, \
+                                                              output_dir=output_dir, \
+                                                              input_params=None, input_features=None, \
+                                                              class_mapping=class_mapping)
 
     model_file_basename = '%s/%s_model_' % (input_run, run_name)
     scale_file_basename = '%s/%s_scalerange_' % (input_run, run_name)

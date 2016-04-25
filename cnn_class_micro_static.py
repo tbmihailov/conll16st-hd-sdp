@@ -13,7 +13,8 @@ def accuracy(predictions, labels):
 class TextCNN(object):
     def __init__(self, train_dataset, train_labels, valid_dataset, valid_labels, embeddings, vocabulary, l2_reg_lambda,
                  num_steps, batch_size, num_filters, filter_sizes_1, filter_sizes_2, filter_sizes_3, dropout_keep_prob,
-                 lexical, shuffling):
+                 #  lexical,
+                 shuffling):
         # parameters
         vocab_size = len(vocabulary)
         sequence_length = train_dataset.shape[1]
