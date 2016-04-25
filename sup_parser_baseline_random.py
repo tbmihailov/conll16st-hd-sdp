@@ -11,7 +11,7 @@ The parse should take three arguments
 		$inputDataset/parses.json
 		$inputDataset/relations-no-senses.json
 
-	$inputRun = the folder that contains the model file or other resources
+	$inputRun = the folder that contains the word2vec_model file or other resources
 
 	$outputDir = the folder that the parser will output 'output.json' to
 

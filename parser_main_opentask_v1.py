@@ -11,7 +11,7 @@ The parse should take three arguments
 		$inputDataset/raw/...
 		$inputDataset/conll_format/...
 
-	$inputRun = the folder that contains the model file or other resources
+	$inputRun = the folder that contains the word2vec_model file or other resources
 
 	$outputDir = the folder that the parser will output 'output.json' to
 

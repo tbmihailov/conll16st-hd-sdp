@@ -11,7 +11,7 @@ Train should take three arguments
 		$inputDataset/parses.json
 		$inputDataset/relations-no-senses.json
 
-	$inputRun = the folder that contains the model file or other resources
+	$inputRun = the folder that contains the word2vec_model file or other resources
 
 	$outputDir = the folder that the parser will output 'output.json' to
 
@@ -206,7 +206,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
         def filter_items_train_classifier_and_save_model(classifier_name, class_mapping_curr, relation_type, train_x, train_y_txt,
                                                          train_y_relation_types, save_model_file):
             """
-            Filters items by given params, trains the classifier and saves the model to a file.
+            Filters items by given params, trains the classifier and saves the word2vec_model to a file.
             Args:
                 classifier_name: Name of the classifier used for saving the models
                 class_mapping_curr: Class mapping to map train_y_txt to int. Filters items
@@ -215,7 +215,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
                 train_y_txt: Train sample classes - Text class that will be filtered using class_mapping_curr dict
                 train_y_relation_types: Train type indicators if sample is explicit or implicit.
                 Only items with relation_type will be used for training
-                save_model_file: Name of the file in which the model will be saved
+                save_model_file: Name of the file in which the word2vec_model will be saved
             Returns:
                 Filters items and trains classifier
             """
@@ -248,7 +248,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
             end = time.time()
             logging.info("Done in %s s" % (end - start))
 
-            # Saving model
+            # Saving word2vec_model
             pickle.dump(classifier_current, open(save_model_file, 'wb'))
             logging.info('Model saved to %s' % save_model_file)
 
@@ -429,7 +429,7 @@ if __name__ == '__main__':
     logging.info('scale_features:{0}'.format(scale_features))
 
     # w2v/doc2vec params
-    # word2vec model file
+    # word2vec word2vec_model file
     word2vec_model_file = ""  # "qatarliving\\qatarliving_size400_win10_mincnt10.word2vec.bin"
     word2vec_model_file = CommonUtilities.get_param_value("word2vec_model", sys.argv)
     logging.info('Word2Vec File:\n\t%s' % word2vec_model_file)
@@ -457,7 +457,7 @@ if __name__ == '__main__':
         use_id_for_vector = True
     logging.info('use_id_for_vector:{0}'.format(use_id_for_vector))
 
-    # load word2vec model as binary file
+    # load word2vec word2vec_model as binary file
     word2vec_load_bin = False
     word2vec_load_bin = CommonUtilities.get_param_value_bool("word2vec_load_bin", sys.argv, word2vec_load_bin)
     logging.info('word2vec_load_bin:{0}'.format(word2vec_load_bin))
@@ -469,7 +469,7 @@ if __name__ == '__main__':
 
     # Load Models here
     is_doc2vec_model = False
-    # load word2vec model
+    # load word2vec word2vec_model
     if doc2vec_model_file != '':
         model = Doc2Vec.load(doc2vec_model_file)
         is_doc2vec_model = True

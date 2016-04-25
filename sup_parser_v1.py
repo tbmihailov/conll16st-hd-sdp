@@ -11,7 +11,7 @@ Train should take three arguments
 		$inputDataset/parses.json
 		$inputDataset/relations-no-senses.json
 
-	$inputRun = the folder that contains the model file or other resources
+	$inputRun = the folder that contains the word2vec_model file or other resources
 
 	$outputDir = the folder that the parser will output 'output.json' to
 
@@ -264,7 +264,7 @@ if __name__ == '__main__':
     logging.info('scale_features:{0}'.format(scale_features))
 
     #w2v/doc2vec params
-    # word2vec model file
+    # word2vec word2vec_model file
     word2vec_model_file = ""  # "qatarliving\\qatarliving_size400_win10_mincnt10.word2vec.bin"
     word2vec_model_file = CommonUtilities.get_param_value("word2vec_model", sys.argv)
     logging.info('Word2Vec File:\n\t%s' % word2vec_model_file)
@@ -292,7 +292,7 @@ if __name__ == '__main__':
         use_id_for_vector = True
     logging.info('use_id_for_vector:{0}'.format(use_id_for_vector))
 
-    # load word2vec model as binary file
+    # load word2vec word2vec_model as binary file
     word2vec_load_bin = False
     word2vec_load_bin = CommonUtilities.get_param_value_bool("word2vec_load_bin", sys.argv, word2vec_load_bin)
     logging.info('word2vec_load_bin:{0}'.format(word2vec_load_bin))
@@ -305,7 +305,7 @@ if __name__ == '__main__':
 
     # Load Models here
     is_doc2vec_model = False
-    # load word2vec model
+    # load word2vec word2vec_model
     if doc2vec_model_file != '':
         model = Doc2Vec.load(doc2vec_model_file)
         is_doc2vec_model = True

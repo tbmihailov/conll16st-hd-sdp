@@ -15,7 +15,7 @@ class AverageVectorsUtilities(object):
         nwords = 0
 
         #list containing names of words in the vocabulary
-        #index2word_set = set(model.index2word) this is moved as input param for performance reasons
+        #index2word_set = set(word2vec_model.index2word) this is moved as input param for performance reasons
         for word in words:
             if word in index2word_set:
                 nwords = nwords+1
@@ -32,7 +32,7 @@ class AverageVectorsUtilities(object):
         nwords = 0
 
         #list containing names of words in the vocabulary
-        #index2word_set = set(model.index2word) this is moved as input param for performance reasons
+        #index2word_set = set(word2vec_model.index2word) this is moved as input param for performance reasons
         aligned_sim=0.00
         sim_sum=0.00
         for word1 in words1:
