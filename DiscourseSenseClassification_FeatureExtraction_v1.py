@@ -377,7 +377,7 @@ class DiscourseSenseClassification_FeatureExtraction(object):
         connective_tokenlist = [x[2] for x in relation_dict['Connective']['TokenList']]
 
         has_connective = 1 if len(connective_tokenlist) > 0 else 0
-        features.append(has_connective)
+        # features.append(has_connective)
         feat_key = "has_connective"
 
         features['HasConnective'] = has_connective

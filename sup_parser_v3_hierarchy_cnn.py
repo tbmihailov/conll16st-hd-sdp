@@ -45,6 +45,8 @@ from gensim.models import Phrases
 from gensim import corpora  # for dictionary
 from gensim.models import LdaModel
 
+import numpy
+
 # from sklearn.svm import libsvm
 from sklearn.svm import SVC
 import copy
@@ -57,7 +59,11 @@ import const  # Constants support
 import DiscourseSenseClassification_FeatureExtraction_v1
 from DiscourseSenseClassification_FeatureExtraction_v1 import DiscourseSenseClassification_FeatureExtraction
 
+
+
 from cnn_class_micro_static import TextCNN
+
+const.padding_word = "<PAD/>"
 
 def pad_sentences(sentences, sentence_length, padding_word="<PAD/>"):
     """
@@ -157,9 +163,9 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
     @staticmethod
     def filter_items_train_classifier_and_save_model_cnn(classifier_name,
                                                          class_mapping_curr,
-                                                         # relation_type,
+                                                         relation_type,
                                                          train_parsed_raw,
-                                                         train_y_txt,
+                                                         # train_y_txt,
                                                          # train_y_relation_types,
                                                          save_model_file,
                                                          vocabulary,
@@ -186,16 +192,18 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
         train_x_curr = []
         train_y_curr = []
 
+        class_field = const.FIELD_LABEL_LEVEL2
         # Filtering items
         logging.info('Filtering %s items...' % len(train_parsed_raw))
         start = time.time()
+
         for i in range(0, len(train_parsed_raw)):
-            if train_y_txt[i] in class_mapping_curr:  # and train_y_relation_types[i] == relation_type:
+            if train_parsed_raw[i][class_field] in class_mapping_curr:  # and train_y_relation_types[i] == relation_type:
                 curr_train_tokens = train_parsed_raw[i][const.FIELD_ARG1]+train_parsed_raw[i][const.FIELD_ARG2]
-                curr_train_tokens = pad_sentence([x for x in curr_train_tokens if x in vocabulary])
+                curr_train_tokens = pad_sentence([x for x in curr_train_tokens if x in vocabulary], max_relation_length, const.padding_word)
                 curr_train_tokens_idx = [vocabulary[x] for x in curr_train_tokens]
                 train_x_curr.append(curr_train_tokens_idx)  # Do the Arg1, Arg2 concatenation/selection here
-                train_y_curr.append(class_mapping_curr[train_y_txt[i]])
+                train_y_curr.append(class_mapping_curr[train_parsed_raw[i][class_field]])
 
         end = time.time()
         logging.info("Done in %s s" % (end - start))
@@ -230,17 +238,19 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
         split=5
         total_train = len(train_x_curr)
 
-        train_dataset = train_x_curr[:total_train/5]
-        train_label = train_x_curr[:total_train/5]
-        test_dataset = train_x_curr[total_train/5:]
-        test_label = train_y_curr[total_train/5:]
-        logging.info("Split: Train - %s, Test - %s"(len(train_dataset), len(test_dataset)))
+        train_to_take = int((total_train/split)*(split-1))
+        train_dataset = numpy.array([numpy.array(x) for x in train_x_curr[:train_to_take]])
+        train_label = numpy.array(train_x_curr[:train_to_take])
+
+        test_dataset = numpy.array([numpy.array(x) for x in train_x_curr[train_to_take:]])
+        test_label = numpy.array(train_y_curr[train_to_take:])
+
+        logging.info("Split: Train - %s, Test - %s"%(len(train_dataset), len(test_dataset)))
 
         shuffling = "n"
         filter_sizes_1 = 3
         filter_sizes_2 = 4
         filter_sizes_3 = 5
-
 
         cnn = TextCNN(train_dataset=train_dataset, train_labels=train_label, valid_dataset=test_dataset,
                       valid_labels=test_label, embeddings=embeddings, vocabulary=vocabulary,
@@ -363,6 +373,10 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
         max_id = 0
         max_arg_length = 0
         max_relation_length = 0
+
+        # Add padding word to vocab
+        vocab_tokens[const.padding_word] = 1
+        max_id = 1
 
         logging.info('=====EXTRACTING FEATURES======')
 
@@ -490,7 +504,7 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
                                                             vocabulary=vocab_tokens,
                                                             max_relation_length = max_relation_length,
                                                             max_arg_length=max_arg_length,
-                                                            embeddings=word2vec_model
+                                                            embeddings=word2vec_model.syn0
                                                             )
 
         # Classifier: Explicit, Level 1
