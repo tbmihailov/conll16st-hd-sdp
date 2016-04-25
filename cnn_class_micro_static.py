@@ -14,12 +14,12 @@ class TextCNN(object):
     def __init__(self, train_dataset, train_labels, valid_dataset, valid_labels, embeddings, vocabulary, l2_reg_lambda,
                  num_steps, batch_size, num_filters, filter_sizes_1, filter_sizes_2, filter_sizes_3, dropout_keep_prob,
                  #  lexical,
-                 shuffling):
+                 shuffling, num_classes):
         # parameters
         vocab_size = len(vocabulary)
         sequence_length = train_dataset.shape[1]
         train_size = train_dataset.shape[0]
-        num_classes = 3
+        # num_classes = 3
 
         filter_sizes = [filter_sizes_1, filter_sizes_2, filter_sizes_3]
         num_filters_total = num_filters * len(filter_sizes)
@@ -35,10 +35,10 @@ class TextCNN(object):
             input_x = tf.placeholder(tf.int32, shape=[batch_size, sequence_length])
             input_y = tf.placeholder(tf.int32, shape=[batch_size, num_classes])
 
-            tf_valid_dataset = tf.constant(valid_dataset)
+            # tf_valid_dataset = tf.constant(valid_dataset)
+            tf_valid_dataset = tf.placeholder(tf.int32, shape=[None, sequence_length])
 
             reg_coef = tf.placeholder(tf.float32)
-
             l2_loss = tf.constant(0.0)
 
             weights_conv = [tf.Variable(tf.truncated_normal([filter_size, embedding_size, 1, num_filters],
@@ -129,6 +129,6 @@ class TextCNN(object):
                     print ("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
                     print("\n")
 
-            self.valid_predictions = session.run([valid_prediction], feed_dict={embeddings_const: embeddings})
+            self.valid_predictions = session.run([valid_prediction], feed_dict={embeddings_const: embeddings, tf_valid_dataset: valid_dataset})
             self.valid_predictions = np.asarray(self.valid_predictions).reshape(valid_labels.shape)
             self.valid_accuracy = accuracy(self.valid_predictions, np.asarray(valid_labels))

@@ -63,6 +63,8 @@ from DiscourseSenseClassification_FeatureExtraction_v1 import DiscourseSenseClas
 
 from cnn_class_micro_static import TextCNN
 
+from VocabEmbedding_Utilities import VocabEmbeddingUtilities
+
 const.padding_word = "<PAD/>"
 
 def pad_sentences(sentences, sentence_length, padding_word="<PAD/>"):
@@ -169,7 +171,9 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
                                                          # train_y_relation_types,
                                                          save_model_file,
                                                          vocabulary,
-                                                         embeddings,
+                                                         embeddings_model,
+                                                         embeddings_type,
+                                                         embeddings_size,
                                                          max_relation_length,
                                                          max_arg_length):
 
@@ -188,6 +192,13 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
             Filters items and trains classifier
         """
         logging.info('======[%s] - filter_items_train_classifier_and_save_model_cnn======' % classifier_name)
+
+        vocab_embeddings = VocabEmbeddingUtilities.\
+                            get_embeddings_for_vocab_from_model(
+                                vocabulary=vocabulary,
+                                embeddings_type=embeddings_type,
+                                embeddings_model=embeddings_model,
+                                embeddings_size=embeddings_size)
 
         train_x_curr = []
         train_y_curr = []
@@ -239,10 +250,10 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
         total_train = len(train_x_curr)
 
         train_to_take = int((total_train/split)*(split-1))
-        train_dataset = numpy.array([numpy.array(x) for x in train_x_curr[:train_to_take]])
+        train_dataset = numpy.array([x for x in train_x_curr[:train_to_take]])
         train_label = numpy.array(train_x_curr[:train_to_take])
 
-        test_dataset = numpy.array([numpy.array(x) for x in train_x_curr[train_to_take:]])
+        test_dataset = numpy.array([x for x in train_x_curr[train_to_take:]])
         test_label = numpy.array(train_y_curr[train_to_take:])
 
         logging.info("Split: Train - %s, Test - %s"%(len(train_dataset), len(test_dataset)))
@@ -252,15 +263,18 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
         filter_sizes_2 = 4
         filter_sizes_3 = 5
 
+
         cnn = TextCNN(train_dataset=train_dataset, train_labels=train_label, valid_dataset=test_dataset,
-                      valid_labels=test_label, embeddings=embeddings, vocabulary=vocabulary,
+                      valid_labels=test_label, embeddings=vocab_embeddings['embeddings'], vocabulary=vocab_embeddings['vocabulary'],
                       l2_reg_lambda=l2_reg_lambda,
                       num_steps=num_steps, batch_size=batch_size, num_filters=num_filters,
                       filter_sizes_1=filter_sizes_1,
                       filter_sizes_2=filter_sizes_2, filter_sizes_3=filter_sizes_3,
                       dropout_keep_prob=dropout_keep_prob,
                       #  lexical=lexical,
-                      shuffling=shuffling)
+                      shuffling=shuffling,
+                      num_classes=len(class_mapping_curr))
+
         logging.info(cnn.valid_accuracy)
         logging.info("\n")
         logging.info("Fold test accuracy: " + str(cnn.valid_accuracy))
@@ -375,8 +389,8 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
         max_relation_length = 0
 
         # Add padding word to vocab
-        vocab_tokens[const.padding_word] = 1
-        max_id = 1
+        vocab_tokens[const.padding_word] = max_id
+
 
         logging.info('=====EXTRACTING FEATURES======')
 
@@ -458,13 +472,15 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
                 for curr_sense in curr_senses:
                     copied_features_implicit = copy.deepcopy(curr_features_implicit)
 
-
                     copied_features_implicit[const.FIELD_LABEL_LEVEL1] = curr_sense.split('.')[0] if '.' in curr_sense else curr_sense
                     copied_features_implicit[const.FIELD_LABEL_LEVEL2] = curr_sense
 
                     copied_features_implicit[const.FIELD_REL_TYPE] = 1 if relation_dict['Type'] == 'Explicit' else 0
 
                     train_items_with_raw_tokens_implicit.append(copied_features_implicit)
+
+        for k, v in vocab_tokens.iteritems():
+            print "%s - %s" % (k, v)
 
         #SCALE FEATURES
         logging.info('=====SCALING======')
@@ -493,19 +509,22 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
         class_mapping_curr = class_mapping_flat
         save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
 
+
         DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN\
             .filter_items_train_classifier_and_save_model_cnn(classifier_name=classifier_name,
-                                                            class_mapping_curr=class_mapping_curr,
-                                                            relation_type=relation_type,
-                                                            train_parsed_raw=train_items_with_raw_tokens_implicit,
-                                                            # train_y_txt=train_y_txt_level2,
-                                                            # train_y_relation_types=train_y_relation_types,
-                                                            save_model_file=save_model_file_classifier_current,
-                                                            vocabulary=vocab_tokens,
-                                                            max_relation_length = max_relation_length,
-                                                            max_arg_length=max_arg_length,
-                                                            embeddings=word2vec_model.syn0
-                                                            )
+                                                              class_mapping_curr=class_mapping_curr,
+                                                              relation_type=relation_type,
+                                                              train_parsed_raw=train_items_with_raw_tokens_implicit,
+                                                              # train_y_txt=train_y_txt_level2,
+                                                              # train_y_relation_types=train_y_relation_types,
+                                                              save_model_file=save_model_file_classifier_current,
+                                                              vocabulary=vocab_tokens,
+                                                              max_relation_length = max_relation_length,
+                                                              max_arg_length=max_arg_length,
+                                                              embeddings_model=word2vec_model,
+                                                              embeddings_type="w2v",
+                                                              embeddings_size=word2vec_num_features
+                                                              )
 
         # Classifier: Explicit, Level 1
         relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
