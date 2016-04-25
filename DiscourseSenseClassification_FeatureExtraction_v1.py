@@ -11,7 +11,7 @@ Train should take three arguments
 		$inputDataset/parses.json
 		$inputDataset/relations-no-senses.json
 
-	$inputRun = the folder that contains the model file or other resources
+	$inputRun = the folder that contains the word2vec_model file or other resources
 
 	$outputDir = the folder that the parser will output 'output.json' to
 
@@ -53,6 +53,16 @@ sys.path.append('~/semanticz')
 from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
 import pickle
+
+import const
+
+# Constants
+const.FIELD_ARG1 = 'Arg1'
+const.FIELD_ARG2 = 'Arg2'
+const.FIELD_CONNECTIVE = 'Connective'
+const.FIELD_LABEL_LEVEL1 = 'Lbl_Lvl1'
+const.FIELD_LABEL_LEVEL2 = 'Lbl_Lvl2'
+const.FIELD_REL_TYPE = 'Type'
 
 class DiscourseSenseClassification_FeatureExtraction(object):
     """Discourse relation sense classifier feature extration
@@ -354,3 +364,44 @@ class DiscourseSenseClassification_FeatureExtraction(object):
                 features[i] = 0.00
 
         return features  # , sparse_feats_dict
+
+
+
+    @staticmethod
+    def extract_features_as_rawtokens_from_single_record(relation_dict, parse):
+        features = {}
+
+        # FEATURE EXTRACTION HERE
+        doc_id = relation_dict['DocID']
+        # print doc_id
+        connective_tokenlist = [x[2] for x in relation_dict['Connective']['TokenList']]
+
+        has_connective = 1 if len(connective_tokenlist) > 0 else 0
+        features.append(has_connective)
+        feat_key = "has_connective"
+
+        features['HasConnective'] = has_connective
+
+        # print 'relation_dict:'
+        # print relation_dict['Arg1']['TokenList']
+
+        # ARG 1
+        arg1_tokens = [parse[doc_id]['sentences'][x[3]]['words'][x[4]] for x in relation_dict['Arg1']['TokenList']]
+        arg1_words = [x[0] for x in arg1_tokens]
+
+        features[const.FIELD_ARG1] = arg1_words
+
+        # Connective embedding
+        connective_words = [parse[doc_id]['sentences'][x[3]]['words'][x[4]][0] for x in
+                            relation_dict['Connective']['TokenList']]
+
+        features[const.FIELD_CONNECTIVE] = connective_words
+
+        # ARG 2
+        arg2_tokens = [parse[doc_id]['sentences'][x[3]]['words'][x[4]] for x in relation_dict['Arg2']['TokenList']]
+        arg2_words = [x[0] for x in arg2_tokens]
+        # print 'arg2: %s' % arg2_words
+
+        features[const.FIELD_ARG2] = arg2_words
+
+        return features
