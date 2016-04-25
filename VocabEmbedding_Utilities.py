@@ -1,0 +1,182 @@
+from collections import Counter
+from sklearn import cross_validation
+from sklearn.cross_validation import KFold
+from gensim import models
+import itertools
+import numpy as np
+import re
+import sys
+import os
+import pickle
+
+import logging
+
+class VocabEmbeddingUtilities(object):
+
+    @staticmethod
+    def load_word2vec_model(word2vec_model_filename, binary):
+        """
+        Loads word2vec model
+        Args:
+            word2vec_model_filename:Word2vec model file
+            binary: If model is in binary format - used for Google News 300 distribution
+
+        Returns:
+
+        """
+        model = models.Word2Vec.load_word2vec_format(word2vec_model_filename, binary=binary)
+
+        return model
+
+    @staticmethod
+    def load_dependency_embeddings_model(model_filename):
+        """
+        Loads dependency embeddings from dep embeddings pickle file:
+        Usage:
+                model_dep = VocabEmbeddingUtilities.load_dependency_embeddings_model(vector_model_file)
+
+                vocabulary_deps = model_dep['vocabulary']
+                embeddings_deps = model_dep['embeddings']
+        Args:
+            model_filename: Dependency embeddings pickle model
+
+        Returns:
+            loaded dependency embeddings model:
+
+        """
+        model_dep = None
+        with open(model_filename, 'rb') as f:
+            model_dep = pickle.load(f)
+
+        return model_dep
+
+    @staticmethod
+    def build_vocab_from_sentences(sentences):
+        """
+        Builds vocabulary from sentences. Words are ordered by count
+        Args:
+            sentences:
+                List of lists of word tokens.
+        Returns:
+            Word types vocabulary
+        """
+        # Build vocabulary
+        word_counts = Counter(itertools.chain(*sentences))
+        # Mapping from index to word
+        vocabulary_inv = [x[0] for x in word_counts.most_common()]
+        # Mapping from word to index
+        vocabulary = {x: i for i, x in enumerate(vocabulary_inv)}
+
+        return vocabulary
+
+    @staticmethod
+    def build_vocab_and_embeddings_and_save_to_file(sentences, vectors_type, vector_model_file, vectors_size, output_pickle_file):
+        """
+        1. Builds vocabulary from sentences (array of word token arrays).
+        2. Loads word embeddings from a specified word embeddings file and type
+        3. Saves pickle file from object with Vocabulary and Embeddings props:
+            {
+                "Vocabulary" = vocab dictionary (word, idx)
+                "Embeddings" = array indexed by vocabulary idx
+            }
+        Args:
+            sentences:
+            vectors_type:
+            vector_model_file:
+            vectors_size:
+            output_pickle_file:
+
+        Returns:
+
+        """
+
+        print ("Building vocabulary...")
+        # Build vocabulary
+        vocabulary = VocabEmbeddingUtilities.build_vocab_from_sentences(sentences)
+
+        if vectors_type == 'w2v':
+            print ("Loading w2v model...")
+            model = VocabEmbeddingUtilities.load_word2vec_model(vector_model_file, True)
+
+            index2wordset = set(model.index2word)  # performance optimization
+            print ("Building embeddings...")
+            vocab_size = len(vocabulary)
+            embeddings = np.zeros((vocab_size, vectors_size))
+            for word in vocabulary:
+                index = vocabulary[word]
+                if word in index2wordset:
+                    embeddings[index, :] = model[word].reshape((1,vectors_size))
+                else:
+                    # Init random embeddings vector
+                    embeddings[index, :] = np.random.uniform(-0.23, 0.23, [1,vectors_size])
+
+            print ("Write vocab and embeddings data in a pickle...")
+
+            try:
+                fp = open(output_pickle_file, 'wb')
+                save = {
+                    'vocabulary': vocabulary,
+                    'embeddings': embeddings
+                }
+                pickle.dump(save, fp, pickle.HIGHEST_PROTOCOL)
+                fp.close()
+            except Exception as e:
+                print('Unable to save data to %s : %s' % (output_pickle_file, e))
+                raise
+        elif vectors_type == 'random':
+            vocab_size = len(vocabulary)
+            embeddings = np.random.uniform(-1.0, 1.0, [vocab_size, vectors_size])
+
+            print ("Write data in a pickle...")
+            # output_pickle_file = 'random.pickle'
+            try:
+                fp = open(output_pickle_file, 'wb')
+                save = {
+                    'vocabulary': vocabulary,
+                    'embeddings': embeddings
+                }
+                pickle.dump(save, fp, pickle.HIGHEST_PROTOCOL)
+                fp.close()
+            except Exception as e:
+                print('Unable to save data to %s : %s' % (output_pickle_file, e))
+                raise
+        elif vectors_type == 'deps':
+            print ("Loading deps model...")
+
+            try:
+                model_dep = VocabEmbeddingUtilities.load_depembeddings_model(vector_model_file)
+
+                vocabulary_deps = model_dep['vocabulary']
+                embeddings_deps = model_dep['embeddings']
+
+                del model_dep
+            except EOFError as e:
+                print('Unable to load data from %s : %s' % (vector_model_file, e))
+                raise
+
+            print ("Building embeddings...")
+            vocab_size = len(vocabulary)
+            embeddings = np.zeros((vocab_size, vectors_size))
+            for word in vocabulary:
+                index = vocabulary[word]
+                try:
+                    index_deps = vocabulary_deps[word]
+                    embeddings[index, :] = embeddings_deps[index_deps, :]
+                except KeyError:
+                    embeddings[index, :] = np.random.uniform(-0.1, 0.1, [1, vectors_size])
+
+            print ("Write data in a pickle...")
+            # output_pickle_file = 'deps.pickle'
+            try:
+                fp = open(output_pickle_file, 'wb')
+                save = {
+                    'vocabulary': vocabulary,
+                    'embeddings': embeddings
+                }
+                pickle.dump(save, fp, pickle.HIGHEST_PROTOCOL)
+                fp.close()
+            except Exception as e:
+                print('Unable to save data to %s : %s' % (output_pickle_file, e))
+                raise
+        else:
+            raise Exception("vector_type must be in: %s" % ["w2v", "random", "deps"])
