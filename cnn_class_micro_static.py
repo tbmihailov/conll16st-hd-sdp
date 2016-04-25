@@ -32,8 +32,8 @@ class TextCNN(object):
         with graph.as_default():
             tf.set_random_seed(10)
             # variables and constants
-            input_x = tf.placeholder(tf.int32, shape=[batch_size, sequence_length])
-            input_y = tf.placeholder(tf.int32, shape=[batch_size, num_classes])
+            input_x = tf.placeholder(tf.int32, shape=[batch_size, sequence_length], name="input_x")
+            input_y = tf.placeholder(tf.int32, shape=[batch_size, num_classes], name="input_y")
 
             # tf_valid_dataset = tf.constant(valid_dataset)
             tf_valid_dataset = tf.placeholder(tf.int32, shape=[None, sequence_length])
@@ -41,6 +41,7 @@ class TextCNN(object):
             reg_coef = tf.placeholder(tf.float32)
             l2_loss = tf.constant(0.0)
 
+            # Generate convolution weights. This should be more human readable
             weights_conv = [tf.Variable(tf.truncated_normal([filter_size, embedding_size, 1, num_filters],
                                                             stddev=tf.sqrt(2.0 / (filter_size * embedding_size)),
                                                             seed=filter_size + i * num_filters)) for i, filter_size in
@@ -73,7 +74,9 @@ class TextCNN(object):
                     conv = tf.nn.conv2d(data, weights_conv[i], strides=[1, 1, 1, 1], padding="VALID")
                     # non-linearity
                     h = tf.nn.relu(tf.nn.bias_add(conv, biases_conv[i]))
-                    pooled = tf.nn.max_pool(h, ksize=[1, sequence_length - filter_size + 1, 1, 1], strides=[1, 1, 1, 1],
+                    pooled = tf.nn.max_pool(h,
+                                            ksize=[1, sequence_length - filter_size + 1, 1, 1],
+                                            strides=[1, 1, 1, 1],
                                             padding='VALID')
                     pooled_outputs.append(pooled)
 
