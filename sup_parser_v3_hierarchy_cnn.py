@@ -76,21 +76,27 @@ def pad_sentences(sentences, sentence_length, padding_word="<PAD/>"):
     padded_sentences = []
     for i in range(len(sentences)):
         sentence = sentences[i]
-        new_sentence = pad_sentence(sentence, sentence_length, padding_word)
+        new_sentence = pad_or_trim_sentence(sentence, sentence_length, padding_word)
         padded_sentences.append(new_sentence)
 
     return padded_sentences
 
-def pad_sentence(sentence, sentence_length, padding_word="<PAD/>"):
+def pad_or_trim_sentence(sentence, max_sentence_length, padding_word="<PAD/>"):
     """
     Pads all sentences to the same length. The length is defined by the longest sentence.
     Returns padded sentences.
     Credits: Ana Marasovic (marasovic@cl.uni-heidelberg.de)
     """
-    num_padding = sentence_length - len(sentence)
-    new_sentence = sentence + [padding_word] * num_padding
+    if len(sentence)>max_sentence_length:
+        new_sentence = sentence[:max_sentence_length]
+    elif len(sentence) < max_sentence_length:
+        num_padding = max_sentence_length - len(sentence)
+        new_sentence = sentence + [padding_word] * num_padding
+    else:
+        new_sentence = sentence[:]
 
     return new_sentence
+
 
 class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
     """Sample discourse relation sense classifier
@@ -211,7 +217,7 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
         for i in range(0, len(train_parsed_raw)):
             if train_parsed_raw[i][class_field] in class_mapping_curr:  # and train_y_relation_types[i] == relation_type:
                 curr_train_tokens = train_parsed_raw[i][const.FIELD_ARG1]+train_parsed_raw[i][const.FIELD_ARG2]
-                curr_train_tokens = pad_sentence([x for x in curr_train_tokens if x in vocabulary], max_relation_length, const.padding_word)
+                curr_train_tokens = pad_or_trim_sentence([x for x in curr_train_tokens if x in vocabulary], max_relation_length, const.padding_word)
                 curr_train_tokens_idx = [vocabulary[x] for x in curr_train_tokens]
                 train_x_curr.append(curr_train_tokens_idx)  # Do the Arg1, Arg2 concatenation/selection here
                 train_y_curr.append(class_mapping_curr[train_parsed_raw[i][class_field]])
@@ -246,7 +252,7 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
 
         average_accuracy = 0.0
 
-        split=5
+        split = 5
         total_train = len(train_x_curr)
 
         train_to_take = int((total_train/split)*(split-1))
@@ -263,7 +269,12 @@ class DiscourseSenseClassifier_Sup_v3_Hierarchical_CNN(object):
         filter_sizes_2 = 4
         filter_sizes_3 = 5
 
-
+        logging.info("Checking for inconsistent train data length...")
+        sent_length = len(train_dataset[0])
+        for i in range(0, len(train_dataset)):
+            if len(train_dataset[i]) != sent_length:
+                logging.error("[%s]Wrong length: %s != %s"%(i, len(train_dataset[i]), sent_length))
+        print "Train sentence length: %s" % train_dataset.shape[1]
         cnn = TextCNN(train_dataset=train_dataset, train_labels=train_label, valid_dataset=test_dataset,
                       valid_labels=test_label, embeddings=vocab_embeddings['embeddings'], vocabulary=vocab_embeddings['vocabulary'],
                       l2_reg_lambda=l2_reg_lambda,

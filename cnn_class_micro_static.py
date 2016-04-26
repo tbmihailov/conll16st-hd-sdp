@@ -17,7 +17,9 @@ class TextCNN(object):
                  shuffling, num_classes):
         # parameters
         vocab_size = len(vocabulary)
+        # sequence_length = train_dataset.shape[1]
         sequence_length = train_dataset.shape[1]
+
         train_size = train_dataset.shape[0]
         # num_classes = 3
 
@@ -84,6 +86,7 @@ class TextCNN(object):
                 h_pool_flat = tf.reshape(h_pool, [-1, num_filters_total])
                 h_drop = tf.nn.dropout(h_pool_flat, dropout_prob)
                 scores = tf.nn.xw_plus_b(h_drop, weight_output, bias_output)
+
                 return scores
 
             scores = model(embedded_chars_expanded, dropout_keep_prob)
