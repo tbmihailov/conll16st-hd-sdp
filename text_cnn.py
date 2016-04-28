@@ -11,7 +11,7 @@ class TextCNNModel(object):
         self, sequence_length,
             num_classes,
             vocab_size,
-            embedding_size,
+            embeddings,
             filter_sizes, num_filters,
             l2_reg_lambda=0.0):
 
@@ -24,11 +24,20 @@ class TextCNNModel(object):
         l2_loss = tf.constant(0.0)
 
         # Embedding layer
+        # with tf.device('/cpu:0'), tf.name_scope("embedding"):
+        #     W = tf.Variable(
+        #         tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+        #         name="W")
+        #     self.embedded_chars = tf.nn.embedding_lookup(W, self.input_x)
+        #     self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
+
+        self.embedding_size = embeddings.shape[1]
+        self.embeddings_number = embeddings.shape[0]
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            W = tf.Variable(
-                tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                name="W")
-            self.embedded_chars = tf.nn.embedding_lookup(W, self.input_x)
+            self.embeddings_const = tf.placeholder(tf.float32, shape=[self.embeddings_number, self.embedding_size])
+            # embeddings_tuned = tf.Variable(embeddings_const)
+
+            self.embedded_chars = tf.nn.embedding_lookup(self.embeddings_const, self.input_x)
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
 
         # Create a convolution + maxpool layer for each filter size
@@ -36,7 +45,7 @@ class TextCNNModel(object):
         for i, filter_size in enumerate(filter_sizes):
             with tf.name_scope("conv-maxpool-%s" % filter_size):
                 # Convolution Layer
-                filter_shape = [filter_size, embedding_size, 1, num_filters]
+                filter_shape = [filter_size, self.embedding_size, 1, num_filters]
                 W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W")
                 b = tf.Variable(tf.constant(0.1, shape=[num_filters]), name="b")
                 conv = tf.nn.conv2d(

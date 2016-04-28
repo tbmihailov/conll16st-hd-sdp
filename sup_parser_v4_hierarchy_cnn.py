@@ -66,6 +66,9 @@ from VocabEmbedding_Utilities import VocabEmbeddingUtilities
 
 const.padding_word = "<PAD/>"
 
+import tensorflow as tf
+import os
+
 def pad_sentences(sentences, sentence_length, padding_word="<PAD/>"):
     """
     Pads all sentences to the same length. The length is defined by the longest sentence.
@@ -224,7 +227,7 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         end = time.time()
         logging.info("Done in %s s" % (end - start))
 
-        # CNN ANNA's CODE BELOW
+        # CNN CODE BELOW
 
         # Training
         # Classifier params
@@ -251,22 +254,24 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
 
         average_accuracy = 0.0
 
-        split = 5
+        split = 10
         total_train = len(train_x_curr)
 
         train_to_take = int((total_train/split)*(split-1))
         train_dataset = numpy.array([x for x in train_x_curr[:train_to_take]])
         train_label = numpy.array([[1 if (x-1)==i else 0 for i in range(15)] for x in train_y_curr[:train_to_take]])
 
-        test_dataset = numpy.array([x for x in train_x_curr[train_to_take:]])
-        test_label = numpy.array([[1 if (x - 1) == i else 0 for i in range(15)] for x in train_y_curr[train_to_take:]])
+        dev_dataset = numpy.array([x for x in train_x_curr[train_to_take:]])
+        dev_label = numpy.array([[1 if (x - 1) == i else 0 for i in range(15)] for x in train_y_curr[train_to_take:]])
 
-        logging.info("Split: Train - %s, Test - %s"%(len(train_dataset), len(test_dataset)))
+        logging.info("Split: Train - %s, Test - %s"%(len(train_dataset), len(dev_dataset)))
 
         shuffling = "n"
-        filter_sizes_1 = 3
-        filter_sizes_2 = 4
-        filter_sizes_3 = 5
+        # filter_sizes_1 = 3
+        # filter_sizes_2 = 4
+        # filter_sizes_3 = 5
+
+        filter_sizes = [3,4,5]
 
         logging.info("Checking for inconsistent train data length...")
         sent_length = len(train_dataset[0])
@@ -274,21 +279,48 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
             if len(train_dataset[i]) != sent_length:
                 logging.error("[%s]Wrong length: %s != %s"%(i, len(train_dataset[i]), sent_length))
         print "Train sentence length: %s" % train_dataset.shape[1]
-        cnn = TextCNN_Ext(train_dataset=train_dataset, train_labels=train_label, valid_dataset=test_dataset,
-                          valid_labels=test_label, embeddings=vocab_embeddings['embeddings'], vocabulary=vocab_embeddings['vocabulary'],
-                          l2_reg_lambda=l2_reg_lambda,
-                          num_steps=num_steps, batch_size=batch_size, num_filters=num_filters,
-                          filter_sizes_1=filter_sizes_1,
-                          filter_sizes_2=filter_sizes_2, filter_sizes_3=filter_sizes_3,
-                          dropout_keep_prob=dropout_keep_prob,
-                          #  lexical=lexical,
-                          shuffling=shuffling,
-                          num_classes=len(class_mapping_curr))
 
-        logging.info(cnn.valid_accuracy)
-        logging.info("\n")
-        logging.info("Fold test accuracy: " + str(cnn.valid_accuracy))
-        average_accuracy = cnn.valid_accuracy
+        # cnn = TextCNN_Ext(train_dataset=train_dataset, train_labels=train_label, valid_dataset=test_dataset,
+        #                   valid_labels=test_label, embeddings=vocab_embeddings['embeddings'], vocabulary=vocab_embeddings['vocabulary'],
+        #                   l2_reg_lambda=l2_reg_lambda,
+        #                   num_steps=num_steps, batch_size=batch_size, num_filters=num_filters,
+        #                   filter_sizes_1=filter_sizes_1,
+        #                   filter_sizes_2=filter_sizes_2, filter_sizes_3=filter_sizes_3,
+        #                   dropout_keep_prob=dropout_keep_prob,
+        #                   #  lexical=lexical,
+        #                   shuffling=shuffling,
+        #                   num_classes=len(class_mapping_curr))
+
+        # logging.info(cnn.valid_accuracy)
+        # logging.info("\n")
+        # logging.info("Fold test accuracy: " + str(cnn.valid_accuracy))
+        # average_accuracy = cnn.valid_accuracy
+
+
+        from text_cnn_train import text_cnn_train_and_save_model
+
+        allow_soft_placement = True
+        log_device_placement = False
+
+        evaluate_every = num_steps/5
+        checkpoint_every = num_steps/5
+
+        text_cnn_train_and_save_model(x_train=train_dataset, y_train=train_label,
+                                      x_dev=dev_dataset, y_dev=dev_label,
+                                      out_dir=save_model_file,
+                                      allow_soft_placement=allow_soft_placement,
+                                      log_device_placement=log_device_placement,
+                                      embeddings=vocab_embeddings,
+                                      vocabulary=vocabulary,
+                                      filter_sizes=filter_sizes,
+                                      num_filters=num_filters,
+                                      l2_reg_lambda=l2_reg_lambda,
+                                      dropout_keep_prob=dropout_keep_prob,
+                                      batch_size=batch_size,
+                                      num_epochs=num_steps,
+                                      evaluate_every=evaluate_every,
+                                      checkpoint_every=checkpoint_every)
+
 
         # average_accuracy = average_accuracy / 5.0
         # logging.info("Average accuracy on folds:")
@@ -489,8 +521,17 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
 
                     train_items_with_raw_tokens_implicit.append(copied_features_implicit)
 
-        for k, v in vocab_tokens.iteritems():
-            print "%s - %s" % (k, v)
+        logging.info('Vocab size: %s' % vocab_tokens)
+
+        vocab_and_stat_file = '%s_vocabandstat.pickle' % (save_model_file_basename)
+        data_vocab_and_stat = {
+            'vocabulary':vocab_tokens,
+            'max_relation_length':max_relation_length
+        }
+        pickle.dump(data_vocab_and_stat, vocab_and_stat_file)
+        logging.info('Vocab saved to: %s' % vocab_and_stat_file)
+        #for k, v in vocab_tokens.iteritems():
+        #    print "%s - %s" % (k, v)
 
         #SCALE FEATURES
         logging.info('=====SCALING======')
@@ -514,10 +555,10 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
 
         # Classifier: Non-Explicit, Level 1
         relation_type = 0  # 1 Explicit, 0 Non-Explicit, -1 All
-        classifier_name = 'NONEXP_LEVEL1'
+        classifier_name = 'NONEXP_LEVEL1_CNN'
         # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
         class_mapping_curr = class_mapping_flat
-        save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
+        save_model_file_classifier_current = '%s_%s.tensorflow' % (save_model_file_basename, classifier_name)
 
 
         DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN\
@@ -594,40 +635,55 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
 
         # Classifier: Non-Explicit, Level 1
         relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
-        classifier_name = 'NONEXP_LEVEL1'
+        classifier_name = 'NONEXP_LEVEL1_CNN'
         # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
         class_mapping_curr = self.class_mapping
-        load_model_file_classifier_current = '%s_%s.modelfile' % (load_model_file_basename, classifier_name)
+        load_model_file_classifier_current = '%s_%s.tensorflow' % (load_model_file_basename, classifier_name)
         classifier_level1_nonexp = pickle.load(open(load_model_file_classifier_current, 'rb'))
 
-        for i, relation_dict in enumerate(relation_dicts):
-            # print relation_dict
-            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
-                relation_dict=relation_dict, \
-                parse=parse, \
-                word2vec_model=word2vec_model, \
-                word2vec_index2word_set=word2vec_index2word_set)
+        #vocab and stat
+        vocab_and_stat_file = '%s_vocabandstat.pickle' % (load_model_file_basename)
+        logging.info('Loading vocab and stat from: %s' % vocab_and_stat_file)
+        data_vocab_and_stat = pickle.load(vocab_and_stat_file)
+        vocabulary = data_vocab_and_stat['vocabulary']
+        max_relation_length = data_vocab_and_stat['data_vocab_and_stat']
 
+        curr_features_implicit_list = []
+        implicit_relation_objects_list = []  # used for updateing sense estimation result
+
+        for i, relation_dict in enumerate(relation_dicts):
             if len(relation_dict['Connective']['TokenList']) > 0:
                 relation_dict['Type'] = 'Explicit'
             else:
                 relation_dict['Type'] = 'Implicit'
 
-            # sense = valid_senses[random.randint(0, len(valid_senses) - 1)]
-
-            if scale_features:
-                curr_features_vec = scaler.transform([curr_features_vec])[0]
-
+            # print relation_dict
             if relation_dict['Type'] == 'Explicit':
+                curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
+                    relation_dict=relation_dict, \
+                    parse=parse, \
+                    word2vec_model=word2vec_model, \
+                    word2vec_index2word_set=word2vec_index2word_set)
+
+                if scale_features:
+                    curr_features_vec = scaler.transform([curr_features_vec])[0]
+                    sense = classifier_level1_exp.predict([curr_features_vec])[0]
+
                 sense = classifier_level1_exp.predict([curr_features_vec])[0]
+                # print 'predicted sense:%s' % sense
+                # TO DO classmaping id to original class mapping
+                sense_original = class_mapping_id_to_origtext[sense]
+                relation_dict['Sense'] = [sense_original]
+
             else:
-                sense = classifier_level1_nonexp.predict([curr_features_vec])[0]
+                # sense = classifier_level1_nonexp.predict([curr_features_vec])[0]
+                curr_features_implicit = DiscourseSenseClassification_FeatureExtraction\
+                    .extract_features_as_rawtokens_from_single_record( \
+                    relation_dict=relation_dict, \
+                    parse=parse)
 
-            # print 'predicted sense:%s' % sense
-
-            # TO DO classmaping id to original class mapping
-            sense_original = class_mapping_id_to_origtext[sense]
-            relation_dict['Sense'] = [sense_original]
+                curr_features_implicit_list.append(curr_features_implicit)
+                implicit_relation_objects_list.append(relation_dict)
 
             # set output data
             relation_dict['Arg1']['TokenList'] = \
@@ -636,12 +692,64 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
                 [x[2] for x in relation_dict['Arg2']['TokenList']]
             relation_dict['Connective']['TokenList'] = \
                 [x[2] for x in relation_dict['Connective']['TokenList']]
-            output.write(json.dumps(relation_dict) + '\n')
+
+            #output.write(json.dumps(relation_dict) + '\n')
 
             if (i + 1) % 1000 == 0:
                 print '%s of %s' % (i, len(relation_dicts))
                 logging.info('%s of %s' % (i, len(relation_dicts)))
                 print '%s features:%s' % (i, curr_features_vec)
+
+        logging.info('Explicit relation predicted!')
+
+        logging.info('Predicting non-explicit relations...')
+
+        # NON EXPLICIT - EXVALUATION CNN
+
+        from text_cnn_eval import text_cnn_load_model_and_eval
+
+        checkpoint_dir = os.path.abspath(os.path.join(load_model_file_classifier_current, "checkpoints"))
+        checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
+        allow_soft_placement = True
+        log_device_placement = False
+
+        train_x_curr = []
+        # Filtering items
+        logging.info('Preprocessing %s test items...' % len(curr_features_implicit_list))
+        start = time.time()
+
+        for i in range(0, len(curr_features_implicit_list)):
+            curr_train_tokens = curr_features_implicit_list[i][const.FIELD_ARG1] + curr_features_implicit_list[i][const.FIELD_ARG2]
+            curr_train_tokens = pad_or_trim_sentence([x for x in curr_train_tokens if x in vocabulary],
+                                                     max_relation_length, const.padding_word)
+            curr_train_tokens_idx = [vocabulary[x] for x in curr_train_tokens]
+            train_x_curr.append(curr_train_tokens_idx)  # Do the Arg1, Arg2 concatenation/selection here
+
+        predictions_y = text_cnn_load_model_and_eval(x_test=train_x_curr,
+                                                     checkpoint_file=checkpoint_file,
+                                                     allow_soft_placement=allow_soft_placement,
+                                                     log_device_placement=log_device_placement)
+
+        print "Predictions"
+        print predictions_y
+
+        # Print accuracy
+        # correct_predictions = float(sum(predictions_y == y_test))
+        # print("Total number of test examples: {}".format(len(y_test)))
+        # print("Accuracy: {:g}".format(correct_predictions / float(len(y_test))))
+
+
+
+        # set predicted labels
+        for i, relation_dict in enumerate(implicit_relation_objects_list):
+            label_binary = predictions_y[i]
+            label = next(obj for idx,obj in enumerate(label_binary) if obj == 1)+1
+            relation_dict['Sense'] = [class_mapping_id_to_origtext[label]]
+
+        # export results
+        for i, relation_dict in enumerate(relation_dicts):
+            output.write(json.dumps(relation_dict) + '\n')
+
         logging.info('output file written:%s' % output_file)
 
 
