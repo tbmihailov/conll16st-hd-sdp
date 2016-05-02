@@ -60,7 +60,7 @@ class TextCNN(object):
             # bias_output = tf.Variable(tf.constant(0.1, shape=[num_classes]))
 
             embeddings_const = tf.placeholder(tf.float32, shape=[embeddings_number, embedding_size])
-            # embeddings_tuned = tf.Variable(embeddings_const)
+            # embeddings_tuned = tf.Variable(embeddings_placeholder)
 
             embedded_chars = tf.nn.embedding_lookup(embeddings_const, input_x)
             embedded_chars_expanded = tf.expand_dims(embedded_chars, -1)

@@ -18,12 +18,12 @@ fi     # $String is null.
 
 #output dir for parsing results - used for test operations
 output_dir=output/${run_name}
-mkdir -p ${output_dir}
+# mkdir -p ${output_dir}
 
 #model dir where output models are saved after train
 model_dir=models/${run_name}
-rm -rf -- ${model_dir}
-mkdir -p ${model_dir}
+# rm -rf -- ${model_dir}
+# mkdir -p ${model_dir}
 
 scale_features=True
 

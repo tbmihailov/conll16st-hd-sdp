@@ -34,10 +34,10 @@ class TextCNNModel(object):
         self.embedding_size = embeddings.shape[1]
         self.embeddings_number = embeddings.shape[0]
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            self.embeddings_const = tf.placeholder(tf.float32, shape=[self.embeddings_number, self.embedding_size])
-            # embeddings_tuned = tf.Variable(embeddings_const)
+            self.embeddings_placeholder = tf.placeholder(tf.float32, shape=[self.embeddings_number, self.embedding_size])
+            # embeddings_tuned = tf.Variable(embeddings_placeholder)
 
-            self.embedded_chars = tf.nn.embedding_lookup(self.embeddings_const, self.input_x)
+            self.embedded_chars = tf.nn.embedding_lookup(self.embeddings_placeholder, self.input_x)
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
 
         # Create a convolution + maxpool layer for each filter size

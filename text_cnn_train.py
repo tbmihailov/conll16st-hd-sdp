@@ -8,61 +8,7 @@ import datetime
 import data_helpers
 from text_cnn import TextCNNModel
 
-# Parameters
-# ==================================================
 
-# Model Hyperparameters
-tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
-tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
-tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
-tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
-tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
-
-# Training parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
-# Misc Parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
-tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
-
-FLAGS = tf.flags.FLAGS
-FLAGS._parse_flags()
-print("\nParameters:")
-for attr, value in sorted(FLAGS.__flags.items()):
-    print("{}={}".format(attr.upper(), value))
-print("")
-
-
-# Data Preparatopn
-# ==================================================
-
-# Load data
-print("Loading data...")
-x, y, vocabulary, vocabulary_inv = data_helpers.load_data()
-# Randomly shuffle data
-np.random.seed(10)
-shuffle_indices = np.random.permutation(np.arange(len(y)))
-x_shuffled = x[shuffle_indices]
-y_shuffled = y[shuffle_indices]
-# Split train/test set
-# TODO: This is very crude, should use cross-validation
-x_train, x_dev = x_shuffled[:-1000], x_shuffled[-1000:]
-y_train, y_dev = y_shuffled[:-1000], y_shuffled[-1000:]
-print("Vocabulary Size: {:d}".format(len(vocabulary)))
-print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
-
-
-# Training
-# ==================================================
-
-# Output directory for models and summaries
-timestamp = str(int(time.time()))
-out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-print("Writing to {}\n".format(out_dir))
-
-dummy_embeddings = np.zeros((100,100))
 
 def text_cnn_train_and_save_model(x_train, y_train,
                                   x_dev, y_dev,
@@ -78,7 +24,8 @@ def text_cnn_train_and_save_model(x_train, y_train,
                                   batch_size,
                                   num_epochs,
                                   evaluate_every,
-                                  checkpoint_every
+                                  checkpoint_every,
+                                  num_classes
                                   ):
     global sess, cnn, global_step, train_op, train_summary_op, train_summary_writer, dev_summary_op
     with tf.Graph().as_default():
@@ -89,7 +36,7 @@ def text_cnn_train_and_save_model(x_train, y_train,
         with sess.as_default():
             cnn = TextCNNModel(
                 sequence_length=x_train.shape[1],
-                num_classes=2,
+                num_classes=num_classes,
                 vocab_size=len(vocabulary),
                 embeddings=embeddings,
                 filter_sizes=filter_sizes,
@@ -143,13 +90,14 @@ def text_cnn_train_and_save_model(x_train, y_train,
                 feed_dict = {
                     cnn.input_x: x_batch,
                     cnn.input_y: y_batch,
-                    cnn.dropout_keep_prob: dropout_keep_prob
+                    cnn.dropout_keep_prob: dropout_keep_prob,
+                    cnn.embeddings_placeholder: embeddings
                 }
                 _, step, summaries, loss, accuracy = sess.run(
                     [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
                     feed_dict)
-                time_str = datetime.datetime.now().isoformat()
-                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                # time_str = datetime.datetime.now().isoformat()
+                # print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
 
             def dev_step(x_batch, y_batch, writer=None):
@@ -159,7 +107,8 @@ def text_cnn_train_and_save_model(x_train, y_train,
                 feed_dict = {
                     cnn.input_x: x_batch,
                     cnn.input_y: y_batch,
-                    cnn.dropout_keep_prob: 1.0
+                    cnn.dropout_keep_prob: 1.0,
+                    cnn.embeddings_placeholder: embeddings
                 }
                 step, summaries, loss, accuracy = sess.run(
                     [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
@@ -174,6 +123,7 @@ def text_cnn_train_and_save_model(x_train, y_train,
                 list(zip(x_train, y_train)), batch_size, num_epochs)
 
             # Training loop. For each batch...
+
             for batch in batches:
                 x_batch, y_batch = zip(*batch)
                 train_step(x_batch, y_batch)
@@ -187,18 +137,75 @@ def text_cnn_train_and_save_model(x_train, y_train,
                     print("Saved model checkpoint to {}\n".format(path))
 
 
-text_cnn_train_and_save_model(x_train=x_train, y_train=y_train,
-                              x_dev=x_dev, y_dev=y_dev,
-                              out_dir=out_dir,
-                              allow_soft_placement=FLAGS.allow_soft_placement,
-                              log_device_placement=FLAGS.log_device_placement,
-                              embeddings=dummy_embeddings,
-                              vocabulary=vocabulary,
-                              filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
-                              num_filters=FLAGS.num_filters,
-                              l2_reg_lambda=FLAGS.l2_reg_lambda,
-                              dropout_keep_prob=FLAGS.dropout_keep_prob,
-                              batch_size=FLAGS.batch_size,
-                              num_epochs=FLAGS.num_epochs,
-                              evaluate_every=FLAGS.evaluate_every,
-                              checkpoint_every=FLAGS.checkpoint_every)
+if __name__ == '__main__':
+    # Parameters
+    # ==================================================
+
+    # Model Hyperparameters
+    tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
+    tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
+    tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
+    tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
+    tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
+
+    # Training parameters
+    tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
+    tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
+    tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
+    tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
+    # Misc Parameters
+    tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
+    tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+
+    FLAGS = tf.flags.FLAGS
+    FLAGS._parse_flags()
+    print("\nParameters:")
+    for attr, value in sorted(FLAGS.__flags.items()):
+        print("{}={}".format(attr.upper(), value))
+    print("")
+
+
+    # Data Preparatopn
+    # ==================================================
+
+    # Load data
+    print("Loading data...")
+    x, y, vocabulary, vocabulary_inv = data_helpers.load_data()
+    # Randomly shuffle data
+    np.random.seed(10)
+    shuffle_indices = np.random.permutation(np.arange(len(y)))
+    x_shuffled = x[shuffle_indices]
+    y_shuffled = y[shuffle_indices]
+    # Split train/test set
+    # TODO: This is very crude, should use cross-validation
+    x_train, x_dev = x_shuffled[:-1000], x_shuffled[-1000:]
+    y_train, y_dev = y_shuffled[:-1000], y_shuffled[-1000:]
+    print("Vocabulary Size: {:d}".format(len(vocabulary)))
+    print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+
+
+    # Training
+    # ==================================================
+
+    # Output directory for models and summaries
+    timestamp = str(int(time.time()))
+    out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+    print("Writing to {}\n".format(out_dir))
+
+    dummy_embeddings = np.zeros((100,100))
+
+    text_cnn_train_and_save_model(x_train=x_train, y_train=y_train,
+                                  x_dev=x_dev, y_dev=y_dev,
+                                  out_dir=out_dir,
+                                  allow_soft_placement=FLAGS.allow_soft_placement,
+                                  log_device_placement=FLAGS.log_device_placement,
+                                  embeddings=dummy_embeddings,
+                                  vocabulary=vocabulary,
+                                  filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
+                                  num_filters=FLAGS.num_filters,
+                                  l2_reg_lambda=FLAGS.l2_reg_lambda,
+                                  dropout_keep_prob=FLAGS.dropout_keep_prob,
+                                  batch_size=FLAGS.batch_size,
+                                  num_epochs=FLAGS.num_epochs,
+                                  evaluate_every=FLAGS.evaluate_every,
+                                  checkpoint_every=FLAGS.checkpoint_every)

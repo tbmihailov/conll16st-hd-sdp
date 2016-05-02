@@ -208,6 +208,11 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
                                 embeddings_model=embeddings_model,
                                 embeddings_size=embeddings_size)
 
+        # vocab_embeddings_file = '%s/vocab_embeddings_nn.pickle' % save_model_file
+        vocab_embeddings_file = '%s_vocab_embeddings_nn.pickle' % save_model_file
+        pickle.dump(vocab_embeddings, open(vocab_embeddings_file, 'wb'))
+        logging.info('Vocab and embeddings saved to: %s' % vocab_embeddings_file)
+
         train_x_curr = []
         train_y_curr = []
 
@@ -232,7 +237,7 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         # Training
         # Classifier params
         l2_reg_lambda = 0.001
-        num_steps = 1001
+        num_epochs = 100
         batch_size = 50
         num_filters = 128
         dropout_keep_prob = 0.5
@@ -249,7 +254,7 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         logging.info("Mini-batch size: " + str(batch_size))
         logging.info("Num_filters: " + str(num_filters))
         logging.info("Dropout keep prob: " + str(dropout_keep_prob))
-        logging.info("Num of iter: " + str(num_steps))
+        logging.info("Num of epochs: " + str(num_epochs))
         logging.info("Region sizes: 2,3,4")
 
         average_accuracy = 0.0
@@ -283,7 +288,7 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         # cnn = TextCNN_Ext(train_dataset=train_dataset, train_labels=train_label, valid_dataset=test_dataset,
         #                   valid_labels=test_label, embeddings=vocab_embeddings['embeddings'], vocabulary=vocab_embeddings['vocabulary'],
         #                   l2_reg_lambda=l2_reg_lambda,
-        #                   num_steps=num_steps, batch_size=batch_size, num_filters=num_filters,
+        #                   num_epochs=num_epochs, batch_size=batch_size, num_filters=num_filters,
         #                   filter_sizes_1=filter_sizes_1,
         #                   filter_sizes_2=filter_sizes_2, filter_sizes_3=filter_sizes_3,
         #                   dropout_keep_prob=dropout_keep_prob,
@@ -302,24 +307,25 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         allow_soft_placement = True
         log_device_placement = False
 
-        evaluate_every = num_steps/5
-        checkpoint_every = num_steps/5
+        evaluate_every = len(train_dataset)/batch_size
+        checkpoint_every = 2*evaluate_every
 
         text_cnn_train_and_save_model(x_train=train_dataset, y_train=train_label,
                                       x_dev=dev_dataset, y_dev=dev_label,
                                       out_dir=save_model_file,
                                       allow_soft_placement=allow_soft_placement,
                                       log_device_placement=log_device_placement,
-                                      embeddings=vocab_embeddings,
-                                      vocabulary=vocabulary,
+                                      embeddings=vocab_embeddings['embeddings'],
+                                      vocabulary=vocab_embeddings['vocabulary'],
                                       filter_sizes=filter_sizes,
                                       num_filters=num_filters,
                                       l2_reg_lambda=l2_reg_lambda,
                                       dropout_keep_prob=dropout_keep_prob,
                                       batch_size=batch_size,
-                                      num_epochs=num_steps,
+                                      num_epochs=num_epochs,
                                       evaluate_every=evaluate_every,
-                                      checkpoint_every=checkpoint_every)
+                                      checkpoint_every=checkpoint_every,
+                                      num_classes=len(class_mapping_curr))
 
 
         # average_accuracy = average_accuracy / 5.0
@@ -524,11 +530,12 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         logging.info('Vocab size: %s' % vocab_tokens)
 
         vocab_and_stat_file = '%s_vocabandstat.pickle' % (save_model_file_basename)
+
         data_vocab_and_stat = {
-            'vocabulary':vocab_tokens,
-            'max_relation_length':max_relation_length
+            'vocabulary': vocab_tokens,
+            'max_relation_length': max_relation_length
         }
-        pickle.dump(data_vocab_and_stat, vocab_and_stat_file)
+        pickle.dump(data_vocab_and_stat, open(vocab_and_stat_file,'wb'))
         logging.info('Vocab saved to: %s' % vocab_and_stat_file)
         #for k, v in vocab_tokens.iteritems():
         #    print "%s - %s" % (k, v)
@@ -588,12 +595,10 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
             .filter_items_train_classifier_and_save_model_logreg(classifier_name=classifier_name,
                                                                 class_mapping_curr=class_mapping_curr,
                                                                 relation_type=relation_type,
-                                                                train_x = train_x,
+                                                                train_x=train_x,
                                                                 train_y_txt=train_y_txt_level2,
                                                                 train_y_relation_types=train_y_relation_types,
                                                                 save_model_file=save_model_file_classifier_current)
-
-
 
     def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features,
                        load_scale_file_basename, hierachical_classifier=False):
@@ -607,10 +612,19 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         word2vec_index2word_set = set(word2vec_model.index2word)
 
         relation_file = '%s/relations-no-senses.json' % input_dataset
+        relation_dicts = [json.loads(x) for x in open(relation_file)]
+
         parse_file = '%s/parses.json' % input_dataset
         parse = json.load(codecs.open(parse_file, encoding='utf8'))
 
-        relation_dicts = [json.loads(x) for x in open(relation_file)]
+        relation_file_gold = '%s/relations.json' % input_dataset
+        has_gold = False
+        relation_dicts_gold = []
+        relations_y_gold_implicit = []
+        if os.path.isfile(relation_file_gold):
+            print "GOLD DATA LOADED"
+            has_gold = True
+            relation_dicts_gold = [json.loads(x) for x in open(relation_file_gold)]
 
         output_file = '%s/output.json' % output_dir
         output = codecs.open(output_file, 'wb', encoding='utf8')
@@ -633,23 +647,32 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         load_model_file_classifier_current = '%s_%s.modelfile' % (load_model_file_basename, classifier_name)
         classifier_level1_exp = pickle.load(open(load_model_file_classifier_current, 'rb'))
 
+        #vocab and stat
+        vocab_and_stat_file = '%s_vocabandstat.pickle' % (load_model_file_basename)
+        logging.info('Loading vocab and stat from: %s' % vocab_and_stat_file)
+        data_vocab_and_stat = pickle.load(open(vocab_and_stat_file, 'rb'))
+        # vocabulary = data_vocab_and_stat['vocabulary']
+        max_relation_length = data_vocab_and_stat['max_relation_length']
+
         # Classifier: Non-Explicit, Level 1
         relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
         classifier_name = 'NONEXP_LEVEL1_CNN'
         # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
         class_mapping_curr = self.class_mapping
         load_model_file_classifier_current = '%s_%s.tensorflow' % (load_model_file_basename, classifier_name)
-        classifier_level1_nonexp = pickle.load(open(load_model_file_classifier_current, 'rb'))
+        # classifier_level1_nonexp = pickle.load(open(load_model_file_classifier_current, 'rb'))
 
-        #vocab and stat
-        vocab_and_stat_file = '%s_vocabandstat.pickle' % (load_model_file_basename)
-        logging.info('Loading vocab and stat from: %s' % vocab_and_stat_file)
-        data_vocab_and_stat = pickle.load(vocab_and_stat_file)
-        vocabulary = data_vocab_and_stat['vocabulary']
-        max_relation_length = data_vocab_and_stat['data_vocab_and_stat']
+        # vocab_embeddings_file = '%s/vocab_embeddings_nn.pickle' % save_model_file
+        vocab_embeddings_file = '%s_vocab_embeddings_nn.pickle' % load_model_file_classifier_current
+        vocab_embeddings = pickle.load(open(vocab_embeddings_file, 'rb'))
+        logging.info('Vocab and embeddings loaded from: %s' % vocab_embeddings_file)
+        vocabulary = vocab_embeddings['vocabulary']
+        embeddings = vocab_embeddings['embeddings']
+
+
 
         curr_features_implicit_list = []
-        implicit_relation_objects_list = []  # used for updateing sense estimation result
+        implicit_relation_objects_list = []  # used for updating sense estimation result
 
         for i, relation_dict in enumerate(relation_dicts):
             if len(relation_dict['Connective']['TokenList']) > 0:
@@ -679,11 +702,22 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
                 # sense = classifier_level1_nonexp.predict([curr_features_vec])[0]
                 curr_features_implicit = DiscourseSenseClassification_FeatureExtraction\
                     .extract_features_as_rawtokens_from_single_record( \
-                    relation_dict=relation_dict, \
-                    parse=parse)
+                    relation_dict = relation_dict, \
+                    parse = parse)
 
                 curr_features_implicit_list.append(curr_features_implicit)
                 implicit_relation_objects_list.append(relation_dict)
+
+                random.seed(42)
+                from random import randint
+                if has_gold:
+                    relation_dict_g = relation_dicts_gold[i]
+
+                    if relation_dict_g['Sense'][0] in class_mapping:
+                        relations_y_gold_implicit.append(class_mapping[relation_dict_g['Sense'][0]])
+                    else:
+
+                        relations_y_gold_implicit.append(randint(0, len(class_mapping)-1))
 
             # set output data
             relation_dict['Arg1']['TokenList'] = \
@@ -693,14 +727,14 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
             relation_dict['Connective']['TokenList'] = \
                 [x[2] for x in relation_dict['Connective']['TokenList']]
 
-            #output.write(json.dumps(relation_dict) + '\n')
+            # output.write(json.dumps(relation_dict) + '\n')
 
-            if (i + 1) % 1000 == 0:
+            if (i + 1) % 100 == 0:
                 print '%s of %s' % (i, len(relation_dicts))
                 logging.info('%s of %s' % (i, len(relation_dicts)))
                 print '%s features:%s' % (i, curr_features_vec)
 
-        logging.info('Explicit relation predicted!')
+        logging.info('Explicit relations predicted!')
 
         logging.info('Predicting non-explicit relations...')
 
@@ -725,26 +759,47 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
             curr_train_tokens_idx = [vocabulary[x] for x in curr_train_tokens]
             train_x_curr.append(curr_train_tokens_idx)  # Do the Arg1, Arg2 concatenation/selection here
 
+
+        print "Embeddings[%s] : %s"%(100, vocab_embeddings['embeddings'][100])
+        print "train_x_curr: %s"%len(train_x_curr)
         predictions_y = text_cnn_load_model_and_eval(x_test=train_x_curr,
                                                      checkpoint_file=checkpoint_file,
                                                      allow_soft_placement=allow_soft_placement,
-                                                     log_device_placement=log_device_placement)
+                                                     log_device_placement=log_device_placement,
+                                                     embeddings=embeddings)
 
         print "Predictions"
         print predictions_y
+
+
+        #Confusion matrix
+
+        if has_gold:
+            print "Implicit confusion matrix"
+            import sklearn.metrics as skm
+
+            conf_matrix = skm.confusion_matrix(relations_y_gold_implicit, predictions_y)
+            print conf_matrix
+
+            print skm.accuracy_score(relations_y_gold_implicit, predictions_y)
 
         # Print accuracy
         # correct_predictions = float(sum(predictions_y == y_test))
         # print("Total number of test examples: {}".format(len(y_test)))
         # print("Accuracy: {:g}".format(correct_predictions / float(len(y_test))))
 
-
-
         # set predicted labels
-        for i, relation_dict in enumerate(implicit_relation_objects_list):
-            label_binary = predictions_y[i]
-            label = next(obj for idx,obj in enumerate(label_binary) if obj == 1)+1
-            relation_dict['Sense'] = [class_mapping_id_to_origtext[label]]
+        #for i, relation_dict in enumerate(implicit_relation_objects_list):
+        print "predictions_y cnt:%s" % len(predictions_y)
+        print "implicit_relation_objects_list cnt:%s" % len(implicit_relation_objects_list)
+        for i in range(0, len(predictions_y)):
+            # label_binary = predictions_y[i]
+            # label = next(obj for idx,obj in enumerate(label_binary) if obj == 1)+1
+            label = predictions_y[i]
+            if len(implicit_relation_objects_list[i]['Sense']) > 0:
+                logging.error("%s - already filled - %s" % (i, implicit_relation_objects_list[i]['Type']))
+            else:
+                implicit_relation_objects_list[i]['Sense'] = [class_mapping_id_to_origtext[max(0, label+1)]]
 
         # export results
         for i, relation_dict in enumerate(relation_dicts):
