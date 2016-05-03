@@ -227,14 +227,14 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
                 # S2
                 curr_train_tokens_s1 = train_parsed_raw[i][const.FIELD_ARG1]
                 curr_train_tokens_s1 = pad_or_trim_sentence([x for x in curr_train_tokens_s1 if x in vocabulary],
-                                                            max_relation_length, const.padding_word)
+                                                            max_arg_length, const.padding_word)
                 curr_train_tokens_idx_s1 = [vocabulary[x] for x in curr_train_tokens_s1]
                 train_x_curr_s1.append(curr_train_tokens_idx_s1)
 
                 # S1
                 curr_train_tokens_s2 = train_parsed_raw[i][const.FIELD_ARG2]
                 curr_train_tokens_s2 = pad_or_trim_sentence([x for x in curr_train_tokens_s2 if x in vocabulary],
-                                                            max_relation_length, const.padding_word)
+                                                            max_arg_length, const.padding_word)
                 curr_train_tokens_idx_s2 = [vocabulary[x] for x in curr_train_tokens_s2]
                 train_x_curr_s2.append(curr_train_tokens_idx_s2)
 
@@ -290,7 +290,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         # filter_sizes_2 = 4
         # filter_sizes_3 = 5
 
-        filter_sizes = [3,4,5]
+        filter_sizes = [3, 4, 5]
 
         logging.info("Checking for inconsistent train data length...")
         sent_length = len(train_dataset_s1[0])
@@ -325,7 +325,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         checkpoint_every = 2*evaluate_every
 
         text_cnn_train_and_save_model_v2(x_train_s1=train_dataset_s1,
-                                         x_train_s2=train_dataset_s1,
+                                         x_train_s2=train_dataset_s2,
                                          y_train=train_label,
                                          x_dev_s1=dev_dataset_s1,
                                          x_dev_s2=dev_dataset_s2,
@@ -551,7 +551,8 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
 
         data_vocab_and_stat = {
             'vocabulary': vocab_tokens,
-            'max_relation_length': max_relation_length
+            'max_relation_length': max_relation_length,
+            'max_arg_length': max_arg_length,
         }
         pickle.dump(data_vocab_and_stat, open(vocab_and_stat_file,'wb'))
         logging.info('Vocab saved to: %s' % vocab_and_stat_file)
@@ -689,7 +690,6 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         embeddings = vocab_embeddings['embeddings']
 
 
-
         curr_features_implicit_list = []
         implicit_relation_objects_list = []  # used for updating sense estimation result
 
@@ -776,14 +776,14 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
             #S2
             curr_train_tokens_s1 = curr_features_implicit_list[i][const.FIELD_ARG1]
             curr_train_tokens_s1 = pad_or_trim_sentence([x for x in curr_train_tokens_s1 if x in vocabulary],
-                                                        max_relation_length, const.padding_word)
+                                                        max_arg_length, const.padding_word)
             curr_train_tokens_idx_s1 = [vocabulary[x] for x in curr_train_tokens_s1]
             train_x_curr_s1.append(curr_train_tokens_idx_s1)
 
             #S1
             curr_train_tokens_s2 = curr_features_implicit_list[i][const.FIELD_ARG2]
             curr_train_tokens_s2 = pad_or_trim_sentence([x for x in curr_train_tokens_s2 if x in vocabulary],
-                                                     max_relation_length, const.padding_word)
+                                                        max_arg_length, const.padding_word)
             curr_train_tokens_idx_s2 = [vocabulary[x] for x in curr_train_tokens_s2]
             train_x_curr_s2.append(curr_train_tokens_idx_s2)
 

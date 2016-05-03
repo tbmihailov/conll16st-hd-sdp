@@ -36,7 +36,7 @@ def text_cnn_train_and_save_model(x_train, y_train,
             log_device_placement=log_device_placement)
         sess = tf.Session(config=session_conf)
         with sess.as_default():
-            cnn = TextCNNModel_Cross(
+            cnn = TextCNNModel(
                 sequence_length=x_train.shape[1],
                 num_classes=num_classes,
                 vocab_size=len(vocabulary),
@@ -166,7 +166,7 @@ def text_cnn_train_and_save_model_v2(x_train_s1, x_train_s2, y_train,
             log_device_placement=log_device_placement)
         sess = tf.Session(config=session_conf)
         with sess.as_default():
-            cnn = TextCNNModel(
+            cnn = TextCNNModel_Cross(
                 sequence_length=x_train_s1.shape[1],
                 num_classes=num_classes,
                 vocab_size=len(vocabulary),

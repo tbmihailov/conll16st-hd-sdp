@@ -18,6 +18,8 @@ mode=train
 echo python sup_parser_v5_hierarchy_cnn_cross.py en ${input_dataset_train}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features}
 python sup_parser_v5_hierarchy_cnn_cross.py en ${input_dataset_train}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features}
 
+# exit
+
 echo '=========================================='
 echo '==============TEST========================'
 echo '=========================================='

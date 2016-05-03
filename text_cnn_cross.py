@@ -46,33 +46,68 @@ class TextCNNModel_Cross(object):
             self.embedded_chars_s2 = tf.nn.embedding_lookup(self.embeddings_placeholder, self.input_x_s2)
             self.embedded_chars_expanded_s2 = tf.expand_dims(self.embedded_chars_s2, -1)
 
+            # self.embedded_chars_s1s2_matmul = tf.batch_matmul(self.embedded_chars_expanded_s1, self.embedded_chars_expanded_s2)
+            # self.embedded_chars_s1s2_matmul_expanded = tf.expand_dims(self.embedded_chars_s1s2_matmul, -1)
+
         # Create a convolution + maxpool layer for each s2 filter size
         pooled_outputs_cross_s1s2 = []
 
         num_filters_cross = sequence_length - 1
-        for i, filter_size in enumerate(filter_sizes_cross):
+        for i, filter_size in enumerate(filter_sizes):
             with tf.name_scope("cross-conv-maxpool-%s" % filter_size):
                 # Convolution Layer
 
-                filter_shape = [filter_size, self.embedding_size, 1, num_filters_cross]
+                filter_shape = [filter_size, self.embedding_size, 1, num_filters]
                 W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W")
                 b = tf.Variable(tf.constant(0.1, shape=[num_filters]), name="b")
-                conv = tf.nn.conv2d(
-                    self.embedded_chars_s1,
+
+                # conv = tf.nn.conv2d(
+                #     self.embedded_chars_s1,
+                #     W,
+                #     strides=[1, 1, 1, 1],
+                #     padding="VALID",
+                #     name="conv")
+
+                #S1
+                conv_s1 = tf.nn.conv2d(
+                    self.embedded_chars_expanded_s1,
                     W,
                     strides=[1, 1, 1, 1],
                     padding="VALID",
-                    name="conv")
+                    name="conv_s1")
+
                 # Apply nonlinearity
-                h = tf.nn.relu(tf.nn.bias_add(conv, b), name="relu")
+                h_s1 = tf.nn.relu(tf.nn.bias_add(conv_s1, b), name="relu_s1")
+
                 # Maxpooling over the outputs
-                pooled_cross = tf.nn.max_pool(
-                    h,
+                pooled_cross_s1 = tf.nn.max_pool(
+                    h_s1,
                     ksize=[1, sequence_length - filter_size + 1, 1, 1],
                     strides=[1, 1, 1, 1],
                     padding='VALID',
-                    name="pool")
-                pooled_outputs_cross_s1s2.append(pooled_cross)
+                    name="pool_1")
+                pooled_outputs_cross_s1s2.append(pooled_cross_s1)
+
+                #S2
+                conv_s2 = tf.nn.conv2d(
+                    self.embedded_chars_expanded_s2,
+                    W,
+                    strides=[1, 1, 1, 1],
+                    padding="VALID",
+                    name="conv_s2")
+
+                # Apply nonlinearity
+                h_s2 = tf.nn.relu(tf.nn.bias_add(conv_s2, b), name="relu_s2")
+
+                # Maxpooling over the outputs
+                pooled_cross_s2 = tf.nn.max_pool(
+                    h_s2,
+                    ksize=[1, sequence_length - filter_size + 1, 1, 1],
+                    strides=[1, 1, 1, 1],
+                    padding='VALID',
+                    name="pool_s2")
+
+                pooled_outputs_cross_s1s2.append(pooled_cross_s2)
 
         pooled_outputs = []
         # # Create a convolution + maxpool layer for each filter size
@@ -103,7 +138,7 @@ class TextCNNModel_Cross(object):
         pooled_outputs.extend(pooled_outputs_cross_s1s2)
 
         # Combine all the pooled features
-        num_filters_total = num_filters * len(filter_sizes)
+        num_filters_total = 2 * num_filters * len(filter_sizes) # multiplied by 2
         self.h_pool = tf.concat(3, pooled_outputs)
         self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
 
