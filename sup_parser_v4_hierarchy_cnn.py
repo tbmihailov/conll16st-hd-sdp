@@ -768,8 +768,17 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
                                                      log_device_placement=log_device_placement,
                                                      embeddings=embeddings)
 
-        print "Predictions"
+        print "Classes:"
+        sorted_class_mappings = sorted([(k, v) for k, v in class_mapping_id_to_origtext.iteritems()])
+        print sorted_class_mappings
+
+        print "Predictions:"
+        predictions_y = [min(len(class_mapping_id_to_origtext), x+1) for x in predictions_y]
         print predictions_y
+
+        print "Classes:"
+        for (idx,lbl) in sorted_class_mappings:
+            print "%s - %s" % (idx, lbl)
 
 
         #Confusion matrix
@@ -799,7 +808,7 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
             if len(implicit_relation_objects_list[i]['Sense']) > 0:
                 logging.error("%s - already filled - %s" % (i, implicit_relation_objects_list[i]['Type']))
             else:
-                implicit_relation_objects_list[i]['Sense'] = [class_mapping_id_to_origtext[max(0, label+1)]]
+                implicit_relation_objects_list[i]['Sense'] = [class_mapping_id_to_origtext[label]]
 
         # export results
         for i, relation_dict in enumerate(relation_dicts):
