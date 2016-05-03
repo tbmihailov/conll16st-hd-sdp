@@ -142,8 +142,8 @@ def text_cnn_train_and_save_model(x_train, y_train,
                     print("Saved model checkpoint to {}\n".format(path))
 
 
-def text_cnn_train_and_save_model_v2(x_train, y_train,
-                                  x_dev, y_dev,
+def text_cnn_train_and_save_model_v2(x_train_s1, x_train_s2, y_train,
+                                    x_dev_s1, x_dev_s2, y_dev,
                                   out_dir,
                                   allow_soft_placement,
                                   log_device_placement,
@@ -167,7 +167,7 @@ def text_cnn_train_and_save_model_v2(x_train, y_train,
         sess = tf.Session(config=session_conf)
         with sess.as_default():
             cnn = TextCNNModel(
-                sequence_length=x_train.shape[1],
+                sequence_length=x_train_s1.shape[1],
                 num_classes=num_classes,
                 vocab_size=len(vocabulary),
                 embeddings=embeddings,
@@ -215,12 +215,13 @@ def text_cnn_train_and_save_model_v2(x_train, y_train,
             # Initialize all variables
             sess.run(tf.initialize_all_variables())
 
-            def train_step(x_batch, y_batch):
+            def train_step(x_batch_s1, x_batch_s2, y_batch):
                 """
                 A single training step
                 """
                 feed_dict = {
-                    cnn.input_x: x_batch,
+                    cnn.input_x_s1: x_batch_s1,
+                    cnn.input_x_s2: x_batch_s2,
                     cnn.input_y: y_batch,
                     cnn.dropout_keep_prob: dropout_keep_prob,
                     cnn.embeddings_placeholder: embeddings
@@ -232,12 +233,13 @@ def text_cnn_train_and_save_model_v2(x_train, y_train,
                 # print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
 
-            def dev_step(x_batch, y_batch, writer=None):
+            def dev_step(x_batch_s1, x_batch_s2, y_batch, writer=None):
                 """
                 Evaluates model on a dev set
                 """
                 feed_dict = {
-                    cnn.input_x: x_batch,
+                    cnn.input_x_s1: x_batch_s1,
+                    cnn.input_x_s2: x_batch_s2,
                     cnn.input_y: y_batch,
                     cnn.dropout_keep_prob: 1.0,
                     cnn.embeddings_placeholder: embeddings
@@ -252,17 +254,17 @@ def text_cnn_train_and_save_model_v2(x_train, y_train,
 
             # Generate batches
             batches = data_helpers.batch_iter(
-                list(zip(x_train, y_train)), batch_size, num_epochs)
+                list(zip(x_train_s1,x_train_s2, y_train)), batch_size, num_epochs)
 
             # Training loop. For each batch...
 
             for batch in batches:
-                x_batch, y_batch = zip(*batch)
-                train_step(x_batch, y_batch)
+                x_batch_s1,x_batch_s2, y_batch = zip(*batch)
+                train_step(x_batch_s1, x_batch_s2, y_batch)
                 current_step = tf.train.global_step(sess, global_step)
                 if current_step % evaluate_every == 0:
                     print("\nEvaluation:")
-                    dev_step(x_dev, y_dev, writer=dev_summary_writer)
+                    dev_step(x_dev_s1, x_dev_s2, y_dev, writer=dev_summary_writer)
                     print("")
                 if current_step % checkpoint_every == 0:
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)

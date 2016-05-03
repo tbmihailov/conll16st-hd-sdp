@@ -213,7 +213,8 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         pickle.dump(vocab_embeddings, open(vocab_embeddings_file, 'wb'))
         logging.info('Vocab and embeddings saved to: %s' % vocab_embeddings_file)
 
-        train_x_curr = []
+        train_x_curr_s1 = []
+        train_x_curr_s2 = []
         train_y_curr = []
 
         class_field = const.FIELD_LABEL_LEVEL2
@@ -223,10 +224,20 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
 
         for i in range(0, len(train_parsed_raw)):
             if train_parsed_raw[i][class_field] in class_mapping_curr:  # and train_y_relation_types[i] == relation_type:
-                curr_train_tokens = train_parsed_raw[i][const.FIELD_ARG1]+train_parsed_raw[i][const.FIELD_ARG2]
-                curr_train_tokens = pad_or_trim_sentence([x for x in curr_train_tokens if x in vocabulary], max_relation_length, const.padding_word)
-                curr_train_tokens_idx = [vocabulary[x] for x in curr_train_tokens]
-                train_x_curr.append(curr_train_tokens_idx)  # Do the Arg1, Arg2 concatenation/selection here
+                # S2
+                curr_train_tokens_s1 = train_parsed_raw[i][const.FIELD_ARG1]
+                curr_train_tokens_s1 = pad_or_trim_sentence([x for x in curr_train_tokens_s1 if x in vocabulary],
+                                                            max_relation_length, const.padding_word)
+                curr_train_tokens_idx_s1 = [vocabulary[x] for x in curr_train_tokens_s1]
+                train_x_curr_s1.append(curr_train_tokens_idx_s1)
+
+                # S1
+                curr_train_tokens_s2 = train_parsed_raw[i][const.FIELD_ARG2]
+                curr_train_tokens_s2 = pad_or_trim_sentence([x for x in curr_train_tokens_s2 if x in vocabulary],
+                                                            max_relation_length, const.padding_word)
+                curr_train_tokens_idx_s2 = [vocabulary[x] for x in curr_train_tokens_s2]
+                train_x_curr_s2.append(curr_train_tokens_idx_s2)
+
                 train_y_curr.append(class_mapping_curr[train_parsed_raw[i][class_field]])
 
         end = time.time()
@@ -260,16 +271,19 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         average_accuracy = 0.0
 
         split = 10
-        total_train = len(train_x_curr)
+        total_train = len(train_x_curr_s1)
 
         train_to_take = int((total_train/split)*(split-1))
-        train_dataset = numpy.array([x for x in train_x_curr[:train_to_take]])
+        train_dataset_s1 = numpy.array([x for x in train_x_curr_s1[:train_to_take]])
+        train_dataset_s2 = numpy.array([x for x in train_x_curr_s2[:train_to_take]])
+
         train_label = numpy.array([[1 if (x-1)==i else 0 for i in range(15)] for x in train_y_curr[:train_to_take]])
 
-        dev_dataset = numpy.array([x for x in train_x_curr[train_to_take:]])
+        dev_dataset_s1 = numpy.array([x for x in train_x_curr_s1[train_to_take:]])
+        dev_dataset_s2 = numpy.array([x for x in train_x_curr_s2[train_to_take:]])
         dev_label = numpy.array([[1 if (x - 1) == i else 0 for i in range(15)] for x in train_y_curr[train_to_take:]])
 
-        logging.info("Split: Train - %s, Test - %s"%(len(train_dataset), len(dev_dataset)))
+        logging.info("Split: Train - %s, Test - %s"%(len(train_dataset_s1), len(dev_dataset_s1)))
 
         shuffling = "n"
         # filter_sizes_1 = 3
@@ -279,11 +293,11 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         filter_sizes = [3,4,5]
 
         logging.info("Checking for inconsistent train data length...")
-        sent_length = len(train_dataset[0])
-        for i in range(0, len(train_dataset)):
-            if len(train_dataset[i]) != sent_length:
-                logging.error("[%s]Wrong length: %s != %s"%(i, len(train_dataset[i]), sent_length))
-        print "Train sentence length: %s" % train_dataset.shape[1]
+        sent_length = len(train_dataset_s1[0])
+        for i in range(0, len(train_dataset_s1)):
+            if len(train_dataset_s1[i]) != sent_length:
+                logging.error("[%s]Wrong length: %s != %s"%(i, len(train_dataset_s1[i]), sent_length))
+        print "Train sentence length: %s" % train_dataset_s1.shape[1]
 
         # cnn = TextCNN_Ext(train_dataset=train_dataset, train_labels=train_label, valid_dataset=test_dataset,
         #                   valid_labels=test_label, embeddings=vocab_embeddings['embeddings'], vocabulary=vocab_embeddings['vocabulary'],
@@ -307,25 +321,29 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         allow_soft_placement = True
         log_device_placement = False
 
-        evaluate_every = len(train_dataset)/batch_size
+        evaluate_every = len(train_dataset_s1)/batch_size
         checkpoint_every = 2*evaluate_every
 
-        text_cnn_train_and_save_model_v2(x_train=train_dataset, y_train=train_label,
-                                      x_dev=dev_dataset, y_dev=dev_label,
-                                      out_dir=save_model_file,
-                                      allow_soft_placement=allow_soft_placement,
-                                      log_device_placement=log_device_placement,
-                                      embeddings=vocab_embeddings['embeddings'],
-                                      vocabulary=vocab_embeddings['vocabulary'],
-                                      filter_sizes=filter_sizes,
-                                      num_filters=num_filters,
-                                      l2_reg_lambda=l2_reg_lambda,
-                                      dropout_keep_prob=dropout_keep_prob,
-                                      batch_size=batch_size,
-                                      num_epochs=num_epochs,
-                                      evaluate_every=evaluate_every,
-                                      checkpoint_every=checkpoint_every,
-                                      num_classes=len(class_mapping_curr))
+        text_cnn_train_and_save_model_v2(x_train_s1=train_dataset_s1,
+                                         x_train_s2=train_dataset_s1,
+                                         y_train=train_label,
+                                         x_dev_s1=dev_dataset_s1,
+                                         x_dev_s2=dev_dataset_s2,
+                                         y_dev=dev_label,
+                                         out_dir=save_model_file,
+                                         allow_soft_placement=allow_soft_placement,
+                                         log_device_placement=log_device_placement,
+                                         embeddings=vocab_embeddings['embeddings'],
+                                         vocabulary=vocab_embeddings['vocabulary'],
+                                         filter_sizes=filter_sizes,
+                                         num_filters=num_filters,
+                                         l2_reg_lambda=l2_reg_lambda,
+                                         dropout_keep_prob=dropout_keep_prob,
+                                         batch_size=batch_size,
+                                         num_epochs=num_epochs,
+                                         evaluate_every=evaluate_every,
+                                         checkpoint_every=checkpoint_every,
+                                         num_classes=len(class_mapping_curr))
 
 
         # average_accuracy = average_accuracy / 5.0
@@ -653,6 +671,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         data_vocab_and_stat = pickle.load(open(vocab_and_stat_file, 'rb'))
         # vocabulary = data_vocab_and_stat['vocabulary']
         max_relation_length = data_vocab_and_stat['max_relation_length']
+        max_arg_length = data_vocab_and_stat['max_arg_length']
 
         # Classifier: Non-Explicit, Level 1
         relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
@@ -747,26 +766,38 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         allow_soft_placement = True
         log_device_placement = False
 
-        train_x_curr = []
+        train_x_curr_s1 = []
+        train_x_curr_s2 = []
         # Filtering items
         logging.info('Preprocessing %s test items...' % len(curr_features_implicit_list))
         start = time.time()
 
         for i in range(0, len(curr_features_implicit_list)):
-            curr_train_tokens = curr_features_implicit_list[i][const.FIELD_ARG1] + curr_features_implicit_list[i][const.FIELD_ARG2]
-            curr_train_tokens = pad_or_trim_sentence([x for x in curr_train_tokens if x in vocabulary],
+            #S2
+            curr_train_tokens_s1 = curr_features_implicit_list[i][const.FIELD_ARG1]
+            curr_train_tokens_s1 = pad_or_trim_sentence([x for x in curr_train_tokens_s1 if x in vocabulary],
+                                                        max_relation_length, const.padding_word)
+            curr_train_tokens_idx_s1 = [vocabulary[x] for x in curr_train_tokens_s1]
+            train_x_curr_s1.append(curr_train_tokens_idx_s1)
+
+            #S1
+            curr_train_tokens_s2 = curr_features_implicit_list[i][const.FIELD_ARG2]
+            curr_train_tokens_s2 = pad_or_trim_sentence([x for x in curr_train_tokens_s2 if x in vocabulary],
                                                      max_relation_length, const.padding_word)
-            curr_train_tokens_idx = [vocabulary[x] for x in curr_train_tokens]
-            train_x_curr.append(curr_train_tokens_idx)  # Do the Arg1, Arg2 concatenation/selection here
+            curr_train_tokens_idx_s2 = [vocabulary[x] for x in curr_train_tokens_s2]
+            train_x_curr_s2.append(curr_train_tokens_idx_s2)
+
+
 
 
         print "Embeddings[%s] : %s"%(100, vocab_embeddings['embeddings'][100])
-        print "train_x_curr: %s"%len(train_x_curr)
-        predictions_y = text_cnn_load_model_and_eval_v2(x_test=train_x_curr,
-                                                     checkpoint_file=checkpoint_file,
-                                                     allow_soft_placement=allow_soft_placement,
-                                                     log_device_placement=log_device_placement,
-                                                     embeddings=embeddings)
+        print "train_x_curr: %s"%len(train_x_curr_s1)
+        predictions_y = text_cnn_load_model_and_eval_v2(x_test_s1=train_x_curr_s1,
+                                                        x_test_s2=train_x_curr_s2,
+                                                        checkpoint_file=checkpoint_file,
+                                                        allow_soft_placement=allow_soft_placement,
+                                                        log_device_placement=log_device_placement,
+                                                        embeddings=embeddings)
 
         print "Classes:"
         sorted_class_mappings = sorted([(k, v) for k, v in class_mapping_id_to_origtext.iteritems()])

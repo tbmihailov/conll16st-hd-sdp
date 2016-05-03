@@ -56,7 +56,8 @@ def text_cnn_load_model_and_eval(x_test,
 
     return all_predictions
 
-def text_cnn_load_model_and_eval_v2(x_test,
+def text_cnn_load_model_and_eval_v2(x_test_s1,
+                                    x_test_s2,
                   checkpoint_file,
                   allow_soft_placement,
                   log_device_placement,
@@ -73,7 +74,8 @@ def text_cnn_load_model_and_eval_v2(x_test,
             saver.restore(sess, checkpoint_file)
 
             # Get the placeholders from the graph by name
-            input_x = graph.get_operation_by_name("input_x").outputs[0]
+            input_x_s1 = graph.get_operation_by_name("input_x_s1").outputs[0]
+            input_x_s2 = graph.get_operation_by_name("input_x_s2").outputs[0]
             # input_y = graph.get_operation_by_name("input_y").outputs[0]
             dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
@@ -82,7 +84,7 @@ def text_cnn_load_model_and_eval_v2(x_test,
 
             # Generate batches for one epoch
             batch_size = 50
-            batches = data_helpers.batch_iter(x_test, batch_size, 1, shuffle=False)
+            batches = data_helpers.batch_iter(list(zip(x_test_s1, x_test_s2)), batch_size, 1, shuffle=False)
 
             # Collect the predictions here
             all_predictions = []
@@ -95,8 +97,11 @@ def text_cnn_load_model_and_eval_v2(x_test,
             #     embeddings_placeholder = tf.placeholder(tf.float32, shape=[embeddings_number, embedding_size])
             embeddings_placeholder = graph.get_operation_by_name("embedding/Placeholder").outputs[0]
 
-            for x_test_batch in batches:
-                batch_predictions = sess.run(predictions, {input_x: x_test_batch, dropout_keep_prob: 1.0,
+            for batch in batches:
+                x_test_batch_s1, x_test_batch_s2 = zip(*batch)
+                batch_predictions = sess.run(predictions, {input_x_s1: x_test_batch_s1,
+                                                           input_x_s2: x_test_batch_s2,
+                                                           dropout_keep_prob: 1.0,
                                                            embeddings_placeholder: embeddings})
                 all_predictions = np.concatenate([all_predictions, batch_predictions])
 
