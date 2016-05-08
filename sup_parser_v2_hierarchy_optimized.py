@@ -48,6 +48,9 @@ from gensim.models import LdaModel
 # from sklearn.svm import libsvm
 from sklearn.svm import SVC
 
+from VocabEmbedding_Utilities import VocabEmbeddingUtilities
+from infer import Embeddings
+
 sys.path.append('~/semanticz')
 from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
@@ -73,7 +76,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
 
         pass
 
-    def train_sense(self, input_dataset, word2vec_model, save_model_file_basename, scale_features,
+    def train_sense(self, input_dataset, word2vec_model, save_model_file_basename, scale_features, deps_model,
                     save_scale_file_basename, hierachical_classifier=False):
         class_mapping_flat = self.class_mapping
 
@@ -157,11 +160,14 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
         logging.info('Extracting features from %s items..' % len(train_x))
         for i, relation_dict in enumerate(relation_dicts):
 
-            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
+            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record_v1( \
                 relation_dict=relation_dict, \
                 parse=parse, \
                 word2vec_model=word2vec_model, \
-                word2vec_index2word_set=word2vec_index2word_set)
+                word2vec_index2word_set=word2vec_index2word_set, \
+                deps_model=deps_model['embeddings'], \
+                deps_vocabulary=set(deps_model['vocabulary']),
+            )
 
             if (i + 1) % 1000 == 0:
                 print '%s of %s' % (i, len(relation_dicts))
@@ -287,7 +293,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
                                                      train_y_relation_types=train_y_relation_types,
                                                      save_model_file=save_model_file_classifier_current)
 
-    def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features,
+    def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features, deps_model,
                        load_scale_file_basename, hierachical_classifier=False):
         output_dir = self.output_dir
 
@@ -335,11 +341,14 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
 
         for i, relation_dict in enumerate(relation_dicts):
             # print relation_dict
-            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
+            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record_v1( \
                 relation_dict=relation_dict, \
                 parse=parse, \
                 word2vec_model=word2vec_model, \
-                word2vec_index2word_set=word2vec_index2word_set)
+                word2vec_index2word_set=word2vec_index2word_set, \
+                deps_model=deps_model['embeddings'], \
+                deps_vocabulary=set(deps_model['vocabulary'])
+            )
 
             if len(relation_dict['Connective']['TokenList']) > 0:
                 relation_dict['Type'] = 'Explicit'
@@ -467,6 +476,25 @@ if __name__ == '__main__':
     brownclusters_file = CommonUtilities.get_param_value("brownclusters_file", sys.argv, brownclusters_file)
     logging.info('brownclusters_file:\n\t%s' % brownclusters_file)
 
+    # dependency embeddings
+    # word2vec word2vec_model file
+    deps_model_file = ""  # "qatarliving\\qatarliving_size400_win10_mincnt10.word2vec.bin"
+    deps_model_file = CommonUtilities.get_param_value("deps_model", sys.argv)
+    logging.info('deps_model_file File:\n\t%s' % deps_model_file)
+
+    deps_vocabulary = None
+    deps_embeddings = None
+    deps_model = None
+    has_deps_embeddings = False
+
+    if deps_model_file != "":
+        has_deps_embeddings = True
+        deps_model = Embeddings.load(deps_model_file)
+
+        deps_vocabulary = deps_model['vocabulary']
+        deps_embeddings = deps_model['embeddings']
+
+
     # Load Models here
     is_doc2vec_model = False
     # load word2vec word2vec_model
@@ -500,21 +528,21 @@ if __name__ == '__main__':
     scale_file_basename = '%s/%s_scalerange_' % (input_run, run_name)
     if cmd == 'train':
         logging.info('-----------TRAIN---------------------------------')
-        parser.train_sense(input_dataset=input_dataset, word2vec_model=model,
+        parser.train_sense(input_dataset=input_dataset, word2vec_model=model, deps_model=deps_model,
                            save_model_file_basename=model_file_basename,
                            scale_features=scale_features, save_scale_file_basename=scale_file_basename)
     elif cmd == 'train-test':
         logging.debug(class_mapping)
-        parser.train_sense(input_dataset=input_dataset, word2vec_model=model,
+        parser.train_sense(input_dataset=input_dataset, word2vec_model=model, deps_model=deps_model,
                            save_model_file_basename=model_file_basename,
                            scale_features=scale_features, save_scale_file_basename=scale_file_basename)
         logging.info('-------------------------------------------------------------')
-        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model,
+        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, deps_model=deps_model,
                               load_model_file_basename=model_file_basename,
                               scale_features=scale_features, load_scale_file_basename=scale_file_basename)
     elif cmd == 'test':
         logging.info('-----------TEST----------------------------------')
-        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model,
+        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, deps_model=deps_model,
                               load_model_file_basename=model_file_basename,
                               scale_features=scale_features, load_scale_file_basename=scale_file_basename)
     else:

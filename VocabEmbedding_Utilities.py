@@ -35,8 +35,8 @@ class VocabEmbeddingUtilities(object):
         Usage:
                 model_dep = VocabEmbeddingUtilities.load_dependency_embeddings_model(vector_model_file)
 
-                vocabulary_deps = model_dep['vocabulary']
-                embeddings_deps = model_dep['embeddings']
+                deps_vocabulary = model_dep['vocabulary']
+                deps_embeddings = model_dep['embeddings']
         Args:
             model_filename: Dependency embeddings pickle model
 

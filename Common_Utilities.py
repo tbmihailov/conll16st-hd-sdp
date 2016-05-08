@@ -3,7 +3,7 @@ import sys
 class CommonUtilities(object):
     @staticmethod
     def write_dictionary_to_file(dictionary, file_name, sort_by_key=False):
-        with open(file_name, "w") as f:
+        with open(file_name, "wb") as f:
             if sort_by_key:
                 for key in sorted(dictionary):
                     f.write("%s\t%s\n" %(key, dictionary[key]))
@@ -14,7 +14,7 @@ class CommonUtilities(object):
     @staticmethod
     def load_dictionary_from_file(file_name):
         dictionary = {}
-        with open(file_name, "r") as f:
+        with open(file_name, "rb") as f:
             for line in f:
                 items = line.split("\t")
                 dictionary[items[0]]= items[1].replace("\n","")
@@ -25,7 +25,7 @@ class CommonUtilities(object):
     def load_labeledsentences_as_lists_from_file(file_name):
         labels = []
         sentences = []
-        with open(file_name, "r") as f:
+        with open(file_name, "rb") as f:
             for line in f:
                 items = line.split("\t")
                 labels.append(items[0])

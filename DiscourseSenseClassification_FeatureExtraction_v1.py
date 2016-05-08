@@ -256,6 +256,144 @@ class DiscourseSenseClassification_FeatureExtraction(object):
 
 
     @staticmethod
+    def extract_features_as_vector_from_single_record_v1(relation_dict, parse, word2vec_model, word2vec_index2word_set,
+                                                         deps_model, deps_vocabulary):
+        features = []
+        sparse_feats_dict = {}
+
+        deps_num_feats = deps_model.shape[1]
+        w2v_num_feats = len(word2vec_model.syn0[0])
+
+        # FEATURE EXTRACTION HERE
+        doc_id = relation_dict['DocID']
+        # print doc_id
+        connective_tokenlist = [x[2] for x in relation_dict['Connective']['TokenList']]
+
+        has_connective = 1 if len(connective_tokenlist) > 0 else 0
+        features.append(has_connective)
+        feat_key = "has_connective"
+        if has_connective == 1:
+            CommonUtilities.increment_feat_val(sparse_feats_dict, feat_key, has_connective)
+
+        # print 'relation_dict:'
+        # print relation_dict['Arg1']['TokenList']
+
+        # ARG 1
+        arg1_tokens = [parse[doc_id]['sentences'][x[3]]['words'][x[4]] for x in relation_dict['Arg1']['TokenList']]
+        arg1_words = [x[0] for x in arg1_tokens]
+
+        # print 'arg1: %s' % arg1_words
+        arg1_embedding = AverageVectorsUtilities.makeFeatureVec(arg1_words, word2vec_model, w2v_num_feats,
+                                                                word2vec_index2word_set)
+        features.extend(arg1_embedding)
+        vec_feats = {}
+        CommonUtilities.append_features_with_vectors(vec_feats, arg1_embedding, 'W2V_A1_')
+
+        # arg1 deps embeddings
+        arg1_embedding_deps = AverageVectorsUtilities.makeFeatureVec(arg1_words, deps_model, deps_num_feats,
+                                                                deps_vocabulary)
+
+        features.extend(arg1_embedding_deps)
+        vec_feats = {}
+        CommonUtilities.append_features_with_vectors(vec_feats, arg1_embedding_deps, 'DEPS_A1_')
+
+
+        # connective embedding
+        connective_words = [parse[doc_id]['sentences'][x[3]]['words'][x[4]][0] for x in
+                            relation_dict['Connective']['TokenList']]
+        connective_embedding = AverageVectorsUtilities.makeFeatureVec(connective_words, word2vec_model, w2v_num_feats,
+                                                                      word2vec_index2word_set)
+        features.extend(connective_embedding)
+        vec_feats = {}
+        CommonUtilities.append_features_with_vectors(vec_feats, connective_embedding, 'W2V_CON_')
+
+        # Connective DEPS embveddings
+        connective_embedding_deps = AverageVectorsUtilities.makeFeatureVec(connective_words, deps_model, deps_num_feats,
+                                                                      deps_vocabulary)
+
+        features.extend(connective_embedding_deps)
+        vec_feats = {}
+        CommonUtilities.append_features_with_vectors(vec_feats, connective_embedding_deps, 'DEPS_CON_')
+
+        # ARG 2
+        arg2_tokens = [parse[doc_id]['sentences'][x[3]]['words'][x[4]] for x in relation_dict['Arg2']['TokenList']]
+        arg2_words = [x[0] for x in arg2_tokens]
+        # print 'arg2: %s' % arg2_words
+        arg2_embedding = AverageVectorsUtilities.makeFeatureVec(arg2_words, word2vec_model, w2v_num_feats,
+                                                                word2vec_index2word_set)
+        features.extend(arg2_embedding)
+        vec_feats = {}
+        CommonUtilities.append_features_with_vectors(vec_feats, arg2_embedding, 'W2V_A2_')
+
+        # arg2 deps embeddings
+        arg2_embedding_deps = AverageVectorsUtilities.makeFeatureVec(arg2_words, deps_model, deps_num_feats,
+                                                                     deps_vocabulary)
+
+        features.extend(arg2_embedding_deps)
+        vec_feats = {}
+        CommonUtilities.append_features_with_vectors(vec_feats, arg2_embedding_deps, 'DEPS_A2_')
+
+        # Arg1 to Arg 2 cosine similarity
+        arg1arg2_similarity = 0.00
+        if len(arg1_words) > 0 and len(arg2_words) > 0:
+            arg1arg2_similarity = spatial.distance.cosine(arg1_embedding, arg2_embedding)
+        features.append(arg1arg2_similarity)
+
+        # Calculate maximized similarities
+        words1 = [x for x in arg1_words if x in word2vec_index2word_set]
+        words2 = [x for x in arg1_words if x in word2vec_index2word_set]
+
+        sim_avg_max = AverageVectorsUtilities.get_feature_vec_avg_aligned_sim(words1, words2, word2vec_model,
+                                                                              w2v_num_feats,
+                                                                              word2vec_index2word_set)
+        features.append(sim_avg_max)
+        feat_key = "max_sim_aligned"
+        CommonUtilities.increment_feat_val(sparse_feats_dict, feat_key, sim_avg_max)
+
+        sim_avg_top1 = AverageVectorsUtilities.get_question_vec_to_top_words_avg_sim(words1, words2, word2vec_model,
+                                                                                     w2v_num_feats,
+                                                                                     word2vec_index2word_set, 1)
+        features.append(sim_avg_top1)
+        feat_key = "max_sim_avg_top1"
+        CommonUtilities.increment_feat_val(sparse_feats_dict, feat_key, sim_avg_top1)
+
+        sim_avg_top2 = AverageVectorsUtilities.get_question_vec_to_top_words_avg_sim(words1, words2, word2vec_model,
+                                                                                     w2v_num_feats,
+                                                                                     word2vec_index2word_set, 2)
+        features.append(sim_avg_top2)
+        feat_key = "max_sim_avg_top2"
+        CommonUtilities.increment_feat_val(sparse_feats_dict, feat_key, sim_avg_top2)
+
+        sim_avg_top3 = AverageVectorsUtilities.get_question_vec_to_top_words_avg_sim(words1, words2, word2vec_model,
+                                                                                     w2v_num_feats,
+                                                                                     word2vec_index2word_set, 3)
+        features.append(sim_avg_top3)
+        feat_key = "max_sim_avg_top3"
+        CommonUtilities.increment_feat_val(sparse_feats_dict, feat_key, sim_avg_top3)
+
+        sim_avg_top5 = AverageVectorsUtilities.get_question_vec_to_top_words_avg_sim(words1, words2, word2vec_model,
+                                                                                     w2v_num_feats,
+                                                                                     word2vec_index2word_set, 5)
+        features.append(sim_avg_top5)
+        feat_key = "max_sim_avg_top5"
+        CommonUtilities.increment_feat_val(sparse_feats_dict, feat_key, sim_avg_top5)
+
+        # POS tags similarities
+        postag_feats_vec, postag_feats_sparse = DiscourseSenseClassification_FeatureExtraction.get_postagged_sim_fetures(
+            tokens_data_text1=arg1_tokens, tokens_data_text2=arg2_tokens, postagged_data_dict=parse,
+            model=word2vec_model, word2vec_num_features=w2v_num_feats,
+            word2vec_index2word_set=word2vec_index2word_set)
+
+        features.extend(postag_feats_vec)
+        sparse_feats_dict.update(postag_feats_sparse)
+
+        for i in range(0, len(features)):
+            if math.isnan(features[i]):
+                features[i] = 0.00
+
+        return features  # , sparse_feats_dict
+
+    @staticmethod
     def extract_features_as_vector_from_single_record(relation_dict, parse, word2vec_model, word2vec_index2word_set):
         features = []
         sparse_feats_dict = {}

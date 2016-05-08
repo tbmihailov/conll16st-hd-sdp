@@ -418,9 +418,9 @@ logger.setLevel(logging.DEBUG)
 
 # Enable file logging
 logFileName = '%s/%s-%s.log' % ('logs', 'sup_parser_v1', '{:%Y-%m-%d-%H-%M-%S}'.format(datetime.now()))
-fileHandler = logging.FileHandler(logFileName, 'wb')
-fileHandler.setFormatter(logFormatter)
-logger.addHandler(fileHandler)
+# fileHandler = logging.FileHandler(logFileName, 'wb')
+# fileHandler.setFormatter(logFormatter)
+# logger.addHandler(fileHandler)
 
 # Enable console logging
 consoleHandler = logging.StreamHandler(sys.stdout)
@@ -521,7 +521,7 @@ if __name__ == '__main__':
     # define classes
     class_mapping = dict([(val, idx) for idx, val in enumerate(valid_senses)])
     class_mapping_file = '%s/%s.classlabels' % (output_dir, run_name)
-    CommonUtilities.write_dictionary_to_file(class_mapping, class_mapping_file)
+    # CommonUtilities.write_dictionary_to_file(class_mapping, class_mapping_file)
 
     # RUN PARSER
     parser = DiscourseSenseClassifier_Sup_v2_Hierarchical(valid_senses=valid_senses, input_run=input_run, input_dataset=input_dataset, \
