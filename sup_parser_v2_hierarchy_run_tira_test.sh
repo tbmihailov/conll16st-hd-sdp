@@ -10,9 +10,9 @@ input_dataset_test=$1
 run_type=svm_base
 
 run_name=svm_base_sup_v2
-if [ -n "$1" ]
+if [ -n "$2" ]
 then
-  run_name=$1
+  run_name=$2
 fi     # $String is null.
 
 
