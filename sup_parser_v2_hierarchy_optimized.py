@@ -26,8 +26,6 @@ from datetime import datetime
 import logging  # word2vec logging
 
 from sklearn import preprocessing
-from sklearn.grid_search import GridSearchCV
-from sklearn.linear_model import LogisticRegression
 
 import validator
 from Common_Utilities import CommonUtilities
@@ -238,39 +236,10 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
 
             # Training
             # Classifier params
-
-
-            # classifier_current = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
-            #                          degree=3, gamma='auto', kernel='rbf',
-            #                          max_iter=-1, probability=False, random_state=None, shrinking=True,
-            #                          tol=0.001, verbose=False)
-
-            tune = False
-            param_c = 0.1
-
-            if tune:
-                param_grid = {'C': [0.001, 0.01, 0.1, 1, 2, 3, 4, 10, 100]}
-                # clf = GridSearchCV(LogisticRegression(penalty='l2'), param_grid)
-                classifier_tune = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=1.0, fit_intercept=True,
-                                                        intercept_scaling=1, class_weight=None, random_state=None,
-                                                        solver='liblinear',
-                                                        max_iter=100, multi_class='ovr', verbose=0, warm_start=False,
-                                                        n_jobs=8)
-                gcv = GridSearchCV(cv=None,
-                             estimator=classifier_tune,
-                             param_grid=param_grid)
-                gcv.fit(train_x_curr, train_y_curr)
-
-                logging.info("Estimated_best_params:%s"%gcv.best_params_)
-                if 'C' in gcv.best_params_:
-                    param_c = gcv.best_params_['C']
-                    logging.info("best C=%s"%c_best)
-
-            classifier_current = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=param_c, fit_intercept=True,
-                                                    intercept_scaling=1, class_weight=None, random_state=None,
-                                                    solver='liblinear',
-                                                    max_iter=100, multi_class='ovr', verbose=0, warm_start=False, n_jobs=8)
-
+            classifier_current = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+                                     degree=3, gamma='auto', kernel='rbf',
+                                     max_iter=-1, probability=False, random_state=None, shrinking=True,
+                                     tol=0.001, verbose=False)
             print 'Classifier:\n%s' % classifier_current
 
             start = time.time()
@@ -355,7 +324,6 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
         class_mapping_curr = self.class_mapping
         load_model_file_classifier_current = '%s_%s.modelfile' % (load_model_file_basename, classifier_name)
         classifier_level1_exp = pickle.load(open(load_model_file_classifier_current, 'rb'))
-        logger.info('%s classifier: %s' % (classifier_name, classifier_level1_exp))
 
         # Classifier: Non-Explicit, Level 1
         relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
@@ -364,7 +332,6 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
         class_mapping_curr = self.class_mapping
         load_model_file_classifier_current = '%s_%s.modelfile' % (load_model_file_basename, classifier_name)
         classifier_level1_nonexp = pickle.load(open(load_model_file_classifier_current, 'rb'))
-        logger.info('%s classifier: %s' % (classifier_name, classifier_level1_nonexp))
 
         for i, relation_dict in enumerate(relation_dicts):
             # print relation_dict

@@ -27,9 +27,9 @@ python sup_parser_v2_hierarchy.py en ${input_dataset_test}  ${model_dir} ${outpu
 
 
 # validate output
-python validator.py en ${output_dir}/output.json
+# python validator.py en ${output_dir}/output.json
 
 #score
-python scorer.py ${input_dataset_test}/relations.json ${output_dir}/output.json
+# python scorer.py ${input_dataset_test}/relations.json ${output_dir}/output.json
 
 python tira_sup_eval.py ${input_dataset_test} ${output_dir} ${output_dir}
