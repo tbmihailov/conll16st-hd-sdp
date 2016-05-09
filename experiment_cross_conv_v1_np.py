@@ -1,5 +1,5 @@
 import numpy as np
-
+import tensorflow as tf
 
 
 batch_size = 10
@@ -40,6 +40,9 @@ def convolve(s1,s2):
         batches_conv_res.append(conv_res)
 
     batches_conv_res
+
+
+
 
 batches_conv_res = convolve(s1, s2)
 print(batches_conv_res)
