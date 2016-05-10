@@ -15,6 +15,10 @@ conv_iter = sent_len - filter_size +1
 
 c = tf.zeros([batch_size, conv_iter, conv_iter])
 
+from tensorflow.python.ops import tensor_array_ops
+from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.ops import functional_ops
+
 
 def tf_convolve(s1, s2, filter_size, conv_iter, embedding_size, batch_size):
 
@@ -22,6 +26,7 @@ def tf_convolve(s1, s2, filter_size, conv_iter, embedding_size, batch_size):
     # conv_iter = tf.shape(s1)[1] - filter_\ize + 1
     # embedding_size = tf.shape(s1)[2]
     batches_conv_res = tf.Variable(tf.zeros([1, conv_iter, conv_iter]))
+
     for bi in range(0, batch_size):
         batch_s1 = tf.gather(s1, bi)
         batch_s2 = tf.gather(s2, bi)
@@ -45,10 +50,10 @@ def tf_convolve(s1, s2, filter_size, conv_iter, embedding_size, batch_size):
 
     return batches_conv_res
 
-batches_conv = tf_convolve(s1, s2, filter_size, conv_iter, embedding_size, batch_size)
-batches_conv_val = sess.run(batches_conv)
+#batches_conv = tf_convolve(s1, s2, filter_size, conv_iter, embedding_size, batch_size)
+#batches_conv_val = sess.run(batches_conv)
 
-print(batches_conv_val)
+# print(batches_conv_val)
 
 
 
