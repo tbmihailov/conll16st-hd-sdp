@@ -6,3 +6,5 @@ nohup bash sup_parser_v1_run_train2016_dev2016.sh svm_background_google> backgro
 nohup bash sup_parser_v4_hierarchy_cnn_run_train2016_dev2016.sh svm_background_google_tr16dev> background.out 2> background.err < /dev/null &
 
 nohup bash sup_parser_v1_run_trial2016_trial2016.sh svm_background_trial> background.out 2> background.err < /dev/null &
+
+nohup bash sup_parser_v5_hierarchy_cnn_run_train2016_dev2016.sh svm_cnn_background_google_tr16dev> background.out 2> background.err < /dev/null &

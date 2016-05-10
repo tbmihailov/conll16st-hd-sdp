@@ -52,14 +52,15 @@ Example:
 
         # Convert elems to tensor array.
         n = array_ops.shape(elems)[0]
-        elems_ta = tensor_array_ops.TensorArray(dtype=elems.dtype, size=n,
-                                                dynamic_size=False
-                                                )
+        elems_ta = tensor_array_ops.TensorArray(dtype=dtype, size=n-filter_size,
+                                                dynamic_size=False)
+
         elems_ta = elems_ta.unpack(elems)
 
         i = constant_op.constant(0)
         acc_ta = tensor_array_ops.TensorArray(dtype=dtype, size=n-3,
                                               dynamic_size=False)
+
 
         def compute(i, ta):
             ta = ta.write(i, elems_ta.read(i)*3)

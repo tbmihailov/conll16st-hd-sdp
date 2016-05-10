@@ -264,7 +264,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
                 logging.info("Estimated_best_params:%s"%gcv.best_params_)
                 if 'C' in gcv.best_params_:
                     param_c = gcv.best_params_['C']
-                    logging.info("best C=%s"%c_best)
+                    logging.info("best C=%s" % param_c)
 
             classifier_current = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=param_c, fit_intercept=True,
                                                     intercept_scaling=1, class_weight=None, random_state=None,

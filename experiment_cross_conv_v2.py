@@ -19,7 +19,9 @@ from tensorflow_custom_op import tensor_to_filter_3
 
 
 elems = tf.constant([1,2,3,4,5,6,7,8])
+
 res = sess.run(tensor_to_filter_3(elems))
+
 print res
 
 

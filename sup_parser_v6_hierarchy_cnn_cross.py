@@ -26,6 +26,7 @@ from datetime import datetime
 import logging  # word2vec logging
 
 from sklearn import preprocessing
+from sklearn.linear_model import LogisticRegression
 
 import validator
 from Common_Utilities import CommonUtilities
@@ -50,7 +51,7 @@ import numpy
 # from sklearn.svm import libsvm
 from sklearn.svm import SVC
 import copy
-sys.path.append('~/semanticz')
+# sys.path.append('~/semanticz')
 from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
 import pickle
@@ -68,6 +69,10 @@ const.padding_word = "<PAD/>"
 
 import tensorflow as tf
 import os
+import numpy as np
+
+from experiment_cross_conv_v1_np import convolve_cross_filter_batch
+from experiment_cross_conv_v1_np import convolve_cross_filter_batch_multicore
 
 def pad_sentences(sentences, sentence_length, padding_word="<PAD/>"):
     """
@@ -99,6 +104,16 @@ def pad_or_trim_sentence(sentence, max_sentence_length, padding_word="<PAD/>"):
 
     return new_sentence
 
+
+def get_embeddings(data, embeddings, vocab):
+    res = []
+    for item in data:
+        res_row = []
+        for token in item:
+            res_row.append(embeddings[token])
+        res.append(res_row)
+
+    return res
 
 class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
     """Sample discourse relation sense classifier
@@ -154,10 +169,16 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
 
         # Training
         # Classifier params
-        classifier_current = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
-                                 degree=3, gamma='auto', kernel='rbf',
-                                 max_iter=-1, probability=False, random_state=None, shrinking=True,
-                                 tol=0.001, verbose=False)
+        #classifier_current = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+        #                         degree=3, gamma='auto', kernel='rbf',
+        #                         max_iter=-1, probability=False, random_state=None, shrinking=True,
+        #                         tol=0.001, verbose=False)
+
+        param_c = 0.1
+        classifier_current = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=param_c, fit_intercept=True,
+                                                intercept_scaling=1, class_weight=None, random_state=None,
+                                                solver='liblinear',
+                                                max_iter=100, multi_class='ovr', verbose=0, warm_start=False, n_jobs=8)
         print 'Classifier:\n%s' % classifier_current
 
         start = time.time()
@@ -243,6 +264,44 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         end = time.time()
         logging.info("Done in %s s" % (end - start))
 
+        # Get embeddings for tokens
+        logging.info('Getting embeddings 2x%s items...' % len(train_x_curr_s1))
+        start = time.time()
+
+        embeddings = vocab_embeddings['embeddings']
+        vocab = vocab_embeddings['vocabulary']
+
+        train_x_curr_embedd_s1 = np.array(get_embeddings(train_x_curr_s1, embeddings, vocab))
+        train_x_curr_embedd_s2 = np.array(get_embeddings(train_x_curr_s2, embeddings, vocab))
+
+        end = time.time()
+        logging.info("Done in %s s" % (end - start))
+
+        # cross conv
+        logging.info('Cross conv(s1,s2) 2x%s items...' % len(train_x_curr_s1))
+        cross_file_name = 's1s2_cov_cnt%s_emb%s_voc%s_calculated.pickle' % (len(train_x_curr_s1), len(embeddings), len(vocab))
+        train_x_curr_s1s2_cross_3 = None
+        if os.path.isfile(cross_file_name):
+            logging.info('Loading from file %s'%cross_file_name)
+            train_x_curr_s1s2_cross_3 = pickle.load(open(cross_file_name,'rb'))
+        else:
+            logging.info('Calculating...')
+            start = time.time()
+
+            train_x_curr_s1s2_cross_3 = convolve_cross_filter_batch(train_x_curr_embedd_s1, train_x_curr_embedd_s2, 3)
+            end = time.time()
+            logging.info("Done in %s s" % (end - start))
+            pickle.dump(train_x_curr_s1s2_cross_3, open(cross_file_name,'wb'))
+            logging.info('Dumped in file %s' % cross_file_name)
+
+        print "Cross result"
+        # print "Shape:%s" % train_x_curr_s1s2_cross_3.shape
+        print train_x_curr_s1s2_cross_3[0]
+
+
+
+
+
         # CNN CODE BELOW
 
         # Training
@@ -276,11 +335,14 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         train_to_take = int((total_train/split)*(split-1))
         train_dataset_s1 = numpy.array([x for x in train_x_curr_s1])
         train_dataset_s2 = numpy.array([x for x in train_x_curr_s2])
+        train_dataset_s1s2_cross = numpy.array([x for x in train_x_curr_s1s2_cross_3])
 
         train_label = numpy.array([[1 if (x-1)==i else 0 for i in range(15)] for x in train_y_curr[:train_to_take]])
 
         dev_dataset_s1 = numpy.array([x for x in train_x_curr_s1[train_to_take:]])
         dev_dataset_s2 = numpy.array([x for x in train_x_curr_s2[train_to_take:]])
+        dev_dataset_s1s2_cross = numpy.array([x for x in train_x_curr_s1s2_cross_3[train_to_take:]])
+
         dev_label = numpy.array([[1 if (x - 1) == i else 0 for i in range(15)] for x in train_y_curr[train_to_take:]])
 
         logging.info("Split: Train - %s, Test - %s"%(len(train_dataset_s1), len(dev_dataset_s1)))
@@ -316,7 +378,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         # average_accuracy = cnn.valid_accuracy
 
 
-        from text_cnn_train import text_cnn_train_and_save_model_v2
+        from text_cnn_train import text_cnn_train_and_save_model_v3
 
         allow_soft_placement = True
         log_device_placement = False
@@ -324,11 +386,13 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         evaluate_every = len(train_dataset_s1)/batch_size
         checkpoint_every = 2*evaluate_every
 
-        text_cnn_train_and_save_model_v2(x_train_s1=train_dataset_s1,
+        text_cnn_train_and_save_model_v3(x_train_s1=train_dataset_s1,
                                          x_train_s2=train_dataset_s2,
+                                         x_train_s1s2_cross=train_x_curr_s1s2_cross_3,
                                          y_train=train_label,
                                          x_dev_s1=dev_dataset_s1,
                                          x_dev_s2=dev_dataset_s2,
+                                         x_dev_s1s2_cross=dev_dataset_s1s2_cross,
                                          y_dev=dev_label,
                                          out_dir=save_model_file,
                                          allow_soft_placement=allow_soft_placement,

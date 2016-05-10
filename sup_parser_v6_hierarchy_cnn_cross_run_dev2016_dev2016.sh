@@ -7,9 +7,9 @@
 input_dataset_train=data/conll16-st-dev-en-2016-03-29
 input_dataset_test=data/conll16-st-dev-en-2016-03-29
 
-run_type=hier_cnn
+run_type=svm_cnn
 
-run_name=${run_type}_sup_v5_dev
+run_name=${run_type}_sup_v6_dev
 if [ -n "$1" ]
 then
   run_name=$1
@@ -35,4 +35,4 @@ word2vec_load_bin=False
 # word2vec_load_bin=True # for google pretrained embeddings
 
 log_file=${run_name}_$(date +%y-%m-%d-%H-%M).log
-. sup_parser_v5_hierarchy_cnn_cross_run_partial.sh  # > ${log_file}
+. sup_parser_v6_hierarchy_cnn_cross_run_partial.sh  # > ${log_file}
