@@ -9,7 +9,7 @@ input_dataset_test=data/conll16-st-dev-en-2016-03-29
 
 run_type=svm_base
 
-run_name=${run_type}_sup_v1
+run_name=${run_type}_sup_v3
 if [ -n "$1" ]
 then
   run_name=$1
@@ -35,4 +35,4 @@ word2vec_model=resources/closed_track/word2vec_google/GoogleNews-vectors-negativ
 word2vec_load_bin=True # for google pretrained embeddings
 
 log_file=${run_name}_$(date +%y-%m-%d-%H-%M).log
-. sup_parser_v3_hierarchy_cnn_run_partial.sh  # > ${log_file}
+. sup_parser_v3_hierarchy_cnn_run_partial.sh  > ${log_file}

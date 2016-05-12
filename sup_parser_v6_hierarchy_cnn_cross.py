@@ -281,18 +281,56 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         logging.info('Cross conv(s1,s2) 2x%s items...' % len(train_x_curr_s1))
         cross_file_name = 's1s2_cov_cnt%s_emb%s_voc%s_calculated.pickle' % (len(train_x_curr_s1), len(embeddings), len(vocab))
         train_x_curr_s1s2_cross_3 = None
-        if os.path.isfile(cross_file_name):
+
+        full_calc_load = False
+        if os.path.isfile(cross_file_name) and full_calc_load:
             logging.info('Loading from file %s'%cross_file_name)
-            train_x_curr_s1s2_cross_3 = pickle.load(open(cross_file_name,'rb'))
+            train_x_curr_s1s2_cross_3 = pickle.load(open(cross_file_name, 'rb'))
         else:
             logging.info('Calculating...')
             start = time.time()
 
-            train_x_curr_s1s2_cross_3 = convolve_cross_filter_batch(train_x_curr_embedd_s1, train_x_curr_embedd_s2, 3)
+            filter_size_cross = 3
+            items_per_batch = 500
+            all_items_cnt, sent_len, embedding_size = train_x_curr_embedd_s1.shape
+            conv_iter = sent_len - filter_size_cross + 1
+
+            train_x_curr_s1s2_cross_3 = np.zeros((all_items_cnt, conv_iter, conv_iter))
+
+            batches_cnt = iter = int(all_items_cnt/items_per_batch) if all_items_cnt%items_per_batch==0 else int(all_items_cnt/items_per_batch)+1
+            for batch_i in range(0, batches_cnt):
+                logging.info('batch %s of %s'%(batch_i+1, batches_cnt))
+
+                cross_file_name_batch = 's1s2_cov_cnt%s_emb%s_voc%s_calculated_batch_%s.pickle' % (
+                len(train_x_curr_s1), len(embeddings), len(vocab), batch_i)
+
+                start_batch = time.time()
+                batch_loaded = False
+                if os.path.isfile(cross_file_name_batch):
+                    logging.info('Loading from file %s' % cross_file_name_batch)
+                    try:
+                        convolved_batch = pickle.load(open(cross_file_name_batch, 'rb'))
+                        batch_loaded = True
+                    except:
+                        batch_loaded = False
+                        logging.error('Error loading from file %s..' % cross_file_name_batch)
+
+                if not batch_loaded:
+                    convolved_batch = convolve_cross_filter_batch(train_x_curr_embedd_s1[batch_i*items_per_batch:(batch_i+1)*items_per_batch],
+                                                              train_x_curr_embedd_s2[batch_i*items_per_batch:(batch_i+1)*items_per_batch],
+                                                              filter_size_cross)
+                    pickle.dump(train_x_curr_s1s2_cross_3, open(cross_file_name_batch, 'wb'))
+
+                    logging.info('batch dumped in file %s' % cross_file_name)
+                end_batch = time.time()
+                logging.info("processed in %s s" % (end_batch - start_batch))
+
+                train_x_curr_s1s2_cross_3[batch_i*items_per_batch:(batch_i+1)*items_per_batch] = convolved_batch
+
             end = time.time()
-            logging.info("Done in %s s" % (end - start))
-            pickle.dump(train_x_curr_s1s2_cross_3, open(cross_file_name,'wb'))
-            logging.info('Dumped in file %s' % cross_file_name)
+            logging.info("All done in in %s s" % (end - start))
+            # pickle.dump(train_x_curr_s1s2_cross_3, open(cross_file_name, 'wb'))
+
 
         print "Cross result"
         # print "Shape:%s" % train_x_curr_s1s2_cross_3.shape

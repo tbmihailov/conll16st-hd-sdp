@@ -35,4 +35,4 @@ word2vec_model=resources/closed_track/word2vec_google/GoogleNews-vectors-negativ
 word2vec_load_bin=True # for google pretrained embeddings
 
 log_file=${run_name}_$(date +%y-%m-%d-%H-%M).log
-. sup_parser_v2_hierarchy_run_partial.sh  # > ${log_file}
+. sup_parser_v2_hierarchy_run_partial.sh   > ${log_file}
