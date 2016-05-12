@@ -115,6 +115,8 @@ def get_embeddings(data, embeddings, vocab):
 
     return res
 
+cache_folder = '__cache/'
+
 class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
     """Sample discourse relation sense classifier
     """
@@ -301,8 +303,8 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
             for batch_i in range(0, batches_cnt):
                 logging.info('batch %s of %s'%(batch_i+1, batches_cnt))
 
-                cross_file_name_batch = 's1s2_cov_cnt%s_emb%s_voc%s_calculated_batch_%s.pickle' % (
-                len(train_x_curr_s1), len(embeddings), len(vocab), batch_i)
+                cross_file_name_batch = cache_folder+'s1s2_cov_cnt%s_emb%s_voc%s_calculated_batch_%s_%s.pickle' % (
+                len(train_x_curr_s1), len(embeddings), len(vocab), items_per_batch, batch_i)
 
                 start_batch = time.time()
                 batch_loaded = False
@@ -319,7 +321,8 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
                     convolved_batch = convolve_cross_filter_batch(train_x_curr_embedd_s1[batch_i*items_per_batch:(batch_i+1)*items_per_batch],
                                                               train_x_curr_embedd_s2[batch_i*items_per_batch:(batch_i+1)*items_per_batch],
                                                               filter_size_cross)
-                    pickle.dump(train_x_curr_s1s2_cross_3, open(cross_file_name_batch, 'wb'))
+                    print convolved_batch[0]
+                    pickle.dump(convolved_batch, open(cross_file_name_batch, 'wb'))
 
                     logging.info('batch dumped in file %s' % cross_file_name)
                 end_batch = time.time()
