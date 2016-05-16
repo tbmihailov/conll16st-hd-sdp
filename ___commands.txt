@@ -16,4 +16,8 @@ nohup bash sup_parser_v3_hierarchy_cnn_run_train2016_dev2016.sh sup_parser_v3_cn
 
 nohup bash sup_parser_v6_hierarchy_cnn_cross_run_train2016_dev2016.sh svm_cnn_v6_background_google_tr16dev> svm_cnn_v6_background_google_tr16dev.out 2> svm_cnn_v6_background_google_tr16dev.err < /dev/null &
 
-nohup bash sup_parser_v6_hierarchy_cnn_cross_run_dev2016_dev2016.sh svm_cnn_v6_background_google_dev16dev> svm_cnn_v6_background_google_dev16dev.out 2> svm_cnn_v6_background_google_dev16dev.err < /dev/null &
+nohup bash sup_parser_v6_hierarchy_cnn_cross_run_dev2016_dev2016.sh svm_cnn_v6_background_google_dev16dev_multith> svm_cnn_v6_background_google_dev16dev_multith.out 2> svm_cnn_v6_background_google_dev16dev_multith.err < /dev/null &
+
+
+# multi processor
+nohup bash sup_parser_v6_hierarchy_cnn_cross_run_train2016_dev2016.sh svm_cnn_v6_background_google_tr16dev_B400> svm_cnn_v6_background_google_tr16dev_B400.out 2> svm_cnn_v6_background_google_tr16dev_B400.err < /dev/null &

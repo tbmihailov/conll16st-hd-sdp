@@ -248,7 +248,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         # Training
         # Classifier params
         l2_reg_lambda = 0.001
-        num_epochs = 50
+        num_epochs = 100
         batch_size = 50
         num_filters = 128
         dropout_keep_prob = 0.5
@@ -277,7 +277,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         train_dataset_s1 = numpy.array([x for x in train_x_curr_s1])
         train_dataset_s2 = numpy.array([x for x in train_x_curr_s2])
 
-        train_label = numpy.array([[1 if (x-1)==i else 0 for i in range(15)] for x in train_y_curr[:train_to_take]])
+        train_label = numpy.array([[1 if (x-1)==i else 0 for i in range(15)] for x in train_y_curr])
 
         dev_dataset_s1 = numpy.array([x for x in train_x_curr_s1[train_to_take:]])
         dev_dataset_s2 = numpy.array([x for x in train_x_curr_s2[train_to_take:]])
@@ -344,7 +344,6 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
                                          evaluate_every=evaluate_every,
                                          checkpoint_every=checkpoint_every,
                                          num_classes=len(class_mapping_curr))
-
 
         # average_accuracy = average_accuracy / 5.0
         # logging.info("Average accuracy on folds:")

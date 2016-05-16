@@ -293,7 +293,8 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
             start = time.time()
 
             filter_size_cross = 3
-            items_per_batch = 500
+            items_per_batch = 400
+            cores = 20
             all_items_cnt, sent_len, embedding_size = train_x_curr_embedd_s1.shape
             conv_iter = sent_len - filter_size_cross + 1
 
@@ -318,9 +319,9 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
                         logging.error('Error loading from file %s..' % cross_file_name_batch)
 
                 if not batch_loaded:
-                    convolved_batch = convolve_cross_filter_batch(train_x_curr_embedd_s1[batch_i*items_per_batch:(batch_i+1)*items_per_batch],
+                    convolved_batch = convolve_cross_filter_batch_multicore(train_x_curr_embedd_s1[batch_i*items_per_batch:(batch_i+1)*items_per_batch],
                                                               train_x_curr_embedd_s2[batch_i*items_per_batch:(batch_i+1)*items_per_batch],
-                                                              filter_size_cross)
+                                                              filter_size_cross, cores)
                     print convolved_batch[0]
                     pickle.dump(convolved_batch, open(cross_file_name_batch, 'wb'))
 
@@ -328,7 +329,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
                 end_batch = time.time()
                 logging.info("processed in %s s" % (end_batch - start_batch))
 
-                train_x_curr_s1s2_cross_3[batch_i*items_per_batch:(batch_i+1)*items_per_batch] = convolved_batch
+                # train_x_curr_s1s2_cross_3[batch_i*items_per_batch:(batch_i+1)*items_per_batch] = convolved_batch
 
             end = time.time()
             logging.info("All done in in %s s" % (end - start))

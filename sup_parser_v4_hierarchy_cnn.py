@@ -263,8 +263,8 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         total_train = len(train_x_curr)
 
         train_to_take = int((total_train/split)*(split-1))
-        train_dataset = numpy.array([x for x in train_x_curr[:train_to_take]])
-        train_label = numpy.array([[1 if (x-1)==i else 0 for i in range(15)] for x in train_y_curr[:train_to_take]])
+        train_dataset = numpy.array([x for x in train_x_curr])
+        train_label = numpy.array([[1 if (x-1)==i else 0 for i in range(15)] for x in train_y_curr])
 
         dev_dataset = numpy.array([x for x in train_x_curr[train_to_take:]])
         dev_label = numpy.array([[1 if (x - 1) == i else 0 for i in range(15)] for x in train_y_curr[train_to_take:]])

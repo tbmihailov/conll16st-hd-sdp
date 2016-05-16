@@ -58,41 +58,93 @@ def convolve_cross_filter_batch(s1, s2, filter_size):
         print "batch %s of %s"%(bi, batch_size)
     return batches_conv_res
 
+
+from multiprocessing import Pool
+
+
+def single_func(s1s2):
+    print 'Zipped item :'
+    #print s1s2
+
+    s1, s2 = zip(*s1s2)
+    print s1
+    print s2
+    return convolve_cross_filter(s1, s2, filter_size)
+    # print "batch %s of %s"%(i, batch_size)
+
+def single_func1(s1s2):
+    #print 'Zipped item :'
+    #print s1s2
+    s1u = s1s2['s1']
+    s2u = s1s2['s2']
+    fs = s1s2['fs']
+
+    return convolve_cross_filter(s1u, s2u, fs)
+
 def convolve_cross_filter_batch_multicore(s1, s2, filter_size, processes_cnt):
     batch_size, sent_len, embedding_size = s1.shape
     conv_iter = sent_len - filter_size + 1
 
-    shared_array_base = multiprocessing.Array(ctypes.c_double, batch_size*conv_iter*conv_iter)
-    shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-
-
     # batches_conv_res = np.zeros((batch_size, conv_iter, conv_iter))
-    shared_array = shared_array.reshape(batch_size, conv_iter, conv_iter)
+    # shared_array = shared_array.reshape(batch_size, conv_iter, conv_iter)
     # shared_array = shared_array.reshape(10, 10)
 
-    def single_func(i):
-        shared_array[i] = convolve_cross_filter(s1[i], s2[i], filter_size)
-        # print "batch %s of %s"%(i, batch_size)
+    # s1s2_zipped = list(zip(s1, s2))
+    s1s2_zipped = []
+    for i in range(0, batch_size):
+        s1s2_zipped.append({'s1': s1[i], 's2': s2[i], 'fs':filter_size})
+    print 'Zipped:'
+    #print s1s2_zipped
+    pool = Pool(processes=processes_cnt)
+    shared_array = pool.map(single_func1, s1s2_zipped)
+    #pool.join()
 
-    pool = multiprocessing.Pool(processes=processes_cnt)
-    pool.map(single_func, range(batch_size))
+    return np.array(shared_array)
 
-    return shared_array
-
+import sys
 if __name__ == '__main__':
-    batch_size = 10
-    sent_len = 15
-    embedding_size = 20
+    import logging  # word2vec logging
 
-    s1 = np.empty([batch_size, sent_len, embedding_size])
-    s2 = np.empty([batch_size, sent_len, embedding_size])
+    # Set logging info
+    logFormatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s]: %(levelname)s : %(message)s')
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
 
-    s1.fill(9)
-    s2.fill(4)
+    # Enable file logging
+    # logFileName = '%s/%s-%s.log' % ('logs', 'sup_parser_v1', '{:%Y-%m-%d-%H-%M-%S}'.format(datetime.now()))
+    # fileHandler = logging.FileHandler(logFileName, 'wb')
+    # fileHandler.setFormatter(logFormatter)
+    # logger.addHandler(fileHandler)
+
+    # Enable console logging
+    consoleHandler = logging.StreamHandler(sys.stdout)
+    consoleHandler.setFormatter(logFormatter)
+    logger.addHandler(consoleHandler)
+
+    import time as ti
+    batch_size = 20
+    sent_len = 100
+    embedding_size = 300
+
+    threads = 20
+
+    s1 = np.random.rand(batch_size, sent_len, embedding_size)
+    s2 = np.random.rand(batch_size, sent_len, embedding_size)
 
     filter_size = 3
 
-    batches_conv_res = np.array(convolve_cross_filter_batch_multicore(s1, s2, 3, 5))
+    # multiprocessing
+    pool_size = 20
+
+    logging.info('Parallel claculation with %s pools...' % pool_size)
+    start = ti.time()
+
+
+    batches_conv_res = convolve_cross_filter_batch_multicore(s1, s2, 3, pool_size)
+
+    end = ti.time()
+    logging.info('calculated in %s '%(end-start))
+
     print(batches_conv_res.shape)
     print(batches_conv_res)
 
