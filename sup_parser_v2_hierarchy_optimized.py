@@ -59,7 +59,7 @@ import pickle
 from DiscourseSenseClassification_FeatureExtraction_v1 import DiscourseSenseClassification_FeatureExtraction
 
 
-class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
+class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
     """Sample discourse relation sense classifier
     """
 
@@ -341,7 +341,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
 
         for i, relation_dict in enumerate(relation_dicts):
             # print relation_dict
-            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record_v1( \
+            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record_v2_optimized( \
                 relation_dict=relation_dict, \
                 parse=parse, \
                 word2vec_model=word2vec_model, \
@@ -489,10 +489,12 @@ if __name__ == '__main__':
 
     if deps_model_file != "":
         has_deps_embeddings = True
-        deps_model = Embeddings.load(deps_model_file)
+        logging.info("Loading dependency embeddings from %s" % deps_model_file)
+        deps_model = Embeddings.load(deps_model_file+".contexts", deps_model_file+".words")
 
-        deps_vocabulary = deps_model['vocabulary']
-        deps_embeddings = deps_model['embeddings']
+
+        # deps_vocabulary = deps_model['vocabulary']
+        # deps_embeddings = deps_model['embeddings']
 
 
     # Load Models here
@@ -519,7 +521,7 @@ if __name__ == '__main__':
     CommonUtilities.write_dictionary_to_file(class_mapping, class_mapping_file)
 
     # RUN PARSER
-    parser = DiscourseSenseClassifier_Sup_v2_Hierarchical(valid_senses=valid_senses, input_run=input_run, input_dataset=input_dataset, \
+    parser = DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(valid_senses=valid_senses, input_run=input_run, input_dataset=input_dataset, \
                                     output_dir=output_dir, \
                                     input_params=None, input_features=None, \
                                     class_mapping=class_mapping)

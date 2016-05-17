@@ -9,7 +9,7 @@ input_dataset_test=data/conll16-st-dev-en-2016-03-29
 
 run_type=svm_base
 
-run_name=${run_type}_sup_v1
+run_name=${run_type}_sup_v2_hier
 if [ -n "$1" ]
 then
   run_name=$1

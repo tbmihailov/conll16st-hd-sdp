@@ -21,3 +21,9 @@ nohup bash sup_parser_v6_hierarchy_cnn_cross_run_dev2016_dev2016.sh svm_cnn_v6_b
 
 # multi processor
 nohup bash sup_parser_v6_hierarchy_cnn_cross_run_train2016_dev2016.sh svm_cnn_v6_background_google_tr16dev_B400> svm_cnn_v6_background_google_tr16dev_B400.out 2> svm_cnn_v6_background_google_tr16dev_B400.err < /dev/null &
+
+
+###########################################
+Dependency based word embeddings
+
+ nohup ./word2vecf -train ../conll16st-hd-sdp/resources/external/dep_embeddings/deps.contexts -wvocab wv -cvocab cv -output dim200vecs_vocab0 -size 200 -negative 15 -threads 20 > dim200vecs_vocab0_back.out 2> dim200vecs_vocab0_back.out < /dev/null &

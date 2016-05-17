@@ -386,6 +386,8 @@ class ConnHeadMapper(object):
 if __name__ == '__main__':
     chm = ConnHeadMapper()
 
+
+
     raw_connective = "29 years and 11 months to the day after"
     head_connective, indices = chm.map_raw_connective(raw_connective)
     assert (head_connective == "after")

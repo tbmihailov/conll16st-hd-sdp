@@ -141,7 +141,7 @@ class DiscourseParser_Sup_v1(object):
         pickle.dump(clf, open(save_model_file_basename, 'wb'))
         logging.info('Model saved to %s' % save_model_file_basename)
 
-    def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features, load_scale_file_basename):
+    def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features, load_scale_file_basename, use_connectives_sim=False):
         output_dir = self.output_dir
 
         class_mapping = self.class_mapping
@@ -162,6 +162,7 @@ class DiscourseParser_Sup_v1(object):
 
         clf = SVC()
         clf = pickle.load(open(load_model_file_basename, 'rb'))
+
 
         if scale_features:
             # scaler = preprocessing.MinMaxScaler(self.scale_range)
