@@ -22,6 +22,8 @@ nohup bash sup_parser_v6_hierarchy_cnn_cross_run_dev2016_dev2016.sh svm_cnn_v6_b
 # multi processor
 nohup bash sup_parser_v6_hierarchy_cnn_cross_run_train2016_dev2016.sh svm_cnn_v6_background_google_tr16dev_B400> svm_cnn_v6_background_google_tr16dev_B400.out 2> svm_cnn_v6_background_google_tr16dev_B400.err < /dev/null &
 
+nohup bash sup_parser_v6_hierarchy_cnn_cross_run_train2016_dev2016.sh svm_cnn_v6_background_google_tr16dev_B500_4proc> svm_cnn_v6_background_google_tr16dev_B500_4proc.out 2> svm_cnn_v6_background_google_tr16dev_B500_4proc.err < /dev/null &
+
 
 ###########################################
 Dependency based word embeddings

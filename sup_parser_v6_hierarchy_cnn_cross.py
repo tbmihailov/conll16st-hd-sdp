@@ -293,8 +293,8 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
             start = time.time()
 
             filter_size_cross = 3
-            items_per_batch = 400
-            cores = 20
+            items_per_batch = 500
+            cores = 4
             all_items_cnt, sent_len, embedding_size = train_x_curr_embedd_s1.shape
             conv_iter = sent_len - filter_size_cross + 1
 
@@ -338,7 +338,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
 
         print "Cross result"
         # print "Shape:%s" % train_x_curr_s1s2_cross_3.shape
-        print train_x_curr_s1s2_cross_3[0]
+        # print train_x_curr_s1s2_cross_3[0]
 
 
 
