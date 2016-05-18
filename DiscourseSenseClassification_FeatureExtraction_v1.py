@@ -426,6 +426,7 @@ class DiscourseSenseClassification_FeatureExtraction(object):
             'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
             postagged_sim
 
+        # Additional features
         # similarity for  tag type
         tag_type_start_1 = 'MD'
         tag_type_start_2 = 'VB'
@@ -798,6 +799,7 @@ class DiscourseSenseClassification_FeatureExtraction(object):
         features.extend(arg1_embedding)
         vec_feats = {}
         CommonUtilities.append_features_with_vectors(vec_feats, arg1_embedding, 'W2V_A1_')
+        sparse_feats_dict.update(vec_feats)
 
         # Connective embedding
         if include_connective_features:
@@ -808,6 +810,7 @@ class DiscourseSenseClassification_FeatureExtraction(object):
             features.extend(connective_embedding)
             vec_feats = {}
             CommonUtilities.append_features_with_vectors(vec_feats, connective_embedding, 'W2V_CON_')
+            sparse_feats_dict.update(vec_feats)
 
         # ARG 2
         arg2_tokens = [parse[doc_id]['sentences'][x[3]]['words'][x[4]] for x in relation_dict['Arg2']['TokenList']]
@@ -818,12 +821,15 @@ class DiscourseSenseClassification_FeatureExtraction(object):
         features.extend(arg2_embedding)
         vec_feats = {}
         CommonUtilities.append_features_with_vectors(vec_feats, arg2_embedding, 'W2V_A2_')
+        sparse_feats_dict.update(vec_feats)
 
         # Arg1 to Arg 2 cosine similarity
         arg1arg2_similarity = 0.00
         if len(arg1_words) > 0 and len(arg2_words) > 0:
             arg1arg2_similarity = spatial.distance.cosine(arg1_embedding, arg2_embedding)
         features.append(arg1arg2_similarity)
+        feat_key = "sim_arg1arg2"
+        CommonUtilities.increment_feat_val(sparse_feats_dict, feat_key, arg1arg2_similarity)
 
         # Calculate maximized similarities
         words1 = [x for x in arg1_words if x in word2vec_index2word_set]
@@ -874,7 +880,6 @@ class DiscourseSenseClassification_FeatureExtraction(object):
         features.extend(postag_feats_vec)
         sparse_feats_dict.update(postag_feats_sparse)
 
-
         # calculate connectives similarity
         if connective_embedd_list is not None:
             arg1arg2_avg = (arg1_embedding+arg2_embedding)/2
@@ -883,6 +888,10 @@ class DiscourseSenseClassification_FeatureExtraction(object):
 
             # print connective_sims
             features.extend(connective_sims)
+            vec_feats = {}
+            CommonUtilities.append_features_with_vectors(vec_feats, connective_sims, 'A1A2_CONNSIMS_')
+            sparse_feats_dict.update(vec_feats)
+
         #else:
         #    # Extend with zeros for explicit
         #    features.extend([0 for x in DiscourseSenseClassification_FeatureExtraction.CONNECTIVES])
