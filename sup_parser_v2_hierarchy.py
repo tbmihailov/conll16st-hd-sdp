@@ -366,7 +366,17 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
         parse_file = '%s/parses.json' % input_dataset
         parse = json.load(codecs.open(parse_file, encoding='utf8'))
 
-        relation_dicts = [json.loads(x) for x in open(relation_file)]
+        relation_dicts = []
+        file_line = 0
+        for x in open(relation_file):
+
+            try:
+                relation_dicts.append(json.loads(x[x.index('{'):]))
+            except:
+                print "Error reading json file on line %s" % file_line
+                print x
+            file_line = file_line+1
+        #relation_dicts = [json.loads(x) for x in open(relation_file)]
 
         output_file = '%s/output.json' % output_dir
         output = codecs.open(output_file, 'wb', encoding='utf8')

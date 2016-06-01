@@ -25,7 +25,11 @@ nohup bash sup_parser_v6_hierarchy_cnn_cross_run_train2016_dev2016.sh svm_cnn_v6
 nohup bash sup_parser_v6_hierarchy_cnn_cross_run_train2016_dev2016.sh svm_cnn_v6_background_google_tr16dev_B500_4proc> svm_cnn_v6_background_google_tr16dev_B500_4proc.out 2> svm_cnn_v6_background_google_tr16dev_B500_4proc.err < /dev/null &
 
 
+nohup bash sup_parser_v2_hierarchy_run_train2016_blind2016.sh sup_parser_v2_hier_lg_run_tr16blind16_back> sup_parser_v2_hier_lg_run_tr16blind16_back.out 2> sup_parser_v2_hier_lg_run_tr16blind16_back.err < /dev/null &
+nohup bash sup_parser_v2_hierarchy_run_train2016_test2016.sh sup_parser_v2_hier_lg_run_tr16test16_back> sup_parser_v2_hier_lg_run_tr16test16_back.out 2> sup_parser_v2_hier_lg_run_tr16test16_back.err < /dev/null &
+
 ###########################################
 Dependency based word embeddings
 
  nohup ./word2vecf -train ../conll16st-hd-sdp/resources/external/dep_embeddings/deps.contexts -wvocab wv -cvocab cv -output dim200vecs_vocab0 -size 200 -negative 15 -threads 20 > dim200vecs_vocab0_back.out 2> dim200vecs_vocab0_back.out < /dev/null &
+

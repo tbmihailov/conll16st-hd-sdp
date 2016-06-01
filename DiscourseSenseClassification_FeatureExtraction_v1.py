@@ -427,65 +427,67 @@ class DiscourseSenseClassification_FeatureExtraction(object):
             postagged_sim
 
         # Additional features
-        # similarity for  tag type
-        tag_type_start_1 = 'MD'
-        tag_type_start_2 = 'VB'
-        postagged_sim = DiscourseSenseClassification_FeatureExtraction.calculate_postagged_similarity_from_taggeddata_and_tokens(
-            text1_tokens_in_vocab=tokens_in_vocab_1,
-            text2_tokens_in_vocab=tokens_in_vocab_2,
-            model=model,
-            tag_type_start_1=tag_type_start_1,
-            tag_type_start_2=tag_type_start_2)
+        include_modal = True
+        if include_modal:
+            # similarity for  tag type
+            tag_type_start_1 = 'MD'
+            tag_type_start_2 = 'VB'
+            postagged_sim = DiscourseSenseClassification_FeatureExtraction.calculate_postagged_similarity_from_taggeddata_and_tokens(
+                text1_tokens_in_vocab=tokens_in_vocab_1,
+                text2_tokens_in_vocab=tokens_in_vocab_2,
+                model=model,
+                tag_type_start_1=tag_type_start_1,
+                tag_type_start_2=tag_type_start_2)
 
-        input_data_wordvectors.append(postagged_sim)
-        input_data_sparse_features[
-            'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
-            postagged_sim
+            input_data_wordvectors.append(postagged_sim)
+            input_data_sparse_features[
+                'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
+                postagged_sim
 
-        # similarity for  tag type
-        tag_type_start_1 = 'VB'
-        tag_type_start_2 = 'MD'
-        postagged_sim = DiscourseSenseClassification_FeatureExtraction.calculate_postagged_similarity_from_taggeddata_and_tokens(
-            text1_tokens_in_vocab=tokens_in_vocab_1,
-            text2_tokens_in_vocab=tokens_in_vocab_2,
-            model=model,
-            tag_type_start_1=tag_type_start_1,
-            tag_type_start_2=tag_type_start_2)
+            # similarity for  tag type
+            tag_type_start_1 = 'VB'
+            tag_type_start_2 = 'MD'
+            postagged_sim = DiscourseSenseClassification_FeatureExtraction.calculate_postagged_similarity_from_taggeddata_and_tokens(
+                text1_tokens_in_vocab=tokens_in_vocab_1,
+                text2_tokens_in_vocab=tokens_in_vocab_2,
+                model=model,
+                tag_type_start_1=tag_type_start_1,
+                tag_type_start_2=tag_type_start_2)
 
-        input_data_wordvectors.append(postagged_sim)
-        input_data_sparse_features[
-            'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
-            postagged_sim
+            input_data_wordvectors.append(postagged_sim)
+            input_data_sparse_features[
+                'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
+                postagged_sim
 
-        # similarity for  tag type
-        tag_type_start_1 = ''
-        tag_type_start_2 = 'MD'
-        postagged_sim = DiscourseSenseClassification_FeatureExtraction.calculate_postagged_similarity_from_taggeddata_and_tokens(
-            text1_tokens_in_vocab=tokens_in_vocab_1,
-            text2_tokens_in_vocab=tokens_in_vocab_2,
-            model=model,
-            tag_type_start_1=tag_type_start_1,
-            tag_type_start_2=tag_type_start_2)
+            # similarity for  tag type
+            tag_type_start_1 = ''
+            tag_type_start_2 = 'MD'
+            postagged_sim = DiscourseSenseClassification_FeatureExtraction.calculate_postagged_similarity_from_taggeddata_and_tokens(
+                text1_tokens_in_vocab=tokens_in_vocab_1,
+                text2_tokens_in_vocab=tokens_in_vocab_2,
+                model=model,
+                tag_type_start_1=tag_type_start_1,
+                tag_type_start_2=tag_type_start_2)
 
-        input_data_wordvectors.append(postagged_sim)
-        input_data_sparse_features[
-            'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
-            postagged_sim
+            input_data_wordvectors.append(postagged_sim)
+            input_data_sparse_features[
+                'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
+                postagged_sim
 
-        # similarity for  tag type
-        tag_type_start_1 = 'MD'
-        tag_type_start_2 = ''
-        postagged_sim = DiscourseSenseClassification_FeatureExtraction.calculate_postagged_similarity_from_taggeddata_and_tokens(
-            text1_tokens_in_vocab=tokens_in_vocab_1,
-            text2_tokens_in_vocab=tokens_in_vocab_2,
-            model=model,
-            tag_type_start_1=tag_type_start_1,
-            tag_type_start_2=tag_type_start_2)
+            # similarity for  tag type
+            tag_type_start_1 = 'MD'
+            tag_type_start_2 = ''
+            postagged_sim = DiscourseSenseClassification_FeatureExtraction.calculate_postagged_similarity_from_taggeddata_and_tokens(
+                text1_tokens_in_vocab=tokens_in_vocab_1,
+                text2_tokens_in_vocab=tokens_in_vocab_2,
+                model=model,
+                tag_type_start_1=tag_type_start_1,
+                tag_type_start_2=tag_type_start_2)
 
-        input_data_wordvectors.append(postagged_sim)
-        input_data_sparse_features[
-            'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
-            postagged_sim
+            input_data_wordvectors.append(postagged_sim)
+            input_data_sparse_features[
+                'sim_pos_arg1_%s_arg2_%s' % (tag_type_start_1, 'ALL' if tag_type_start_2 == '' else tag_type_start_2)] = \
+                postagged_sim
 
         return input_data_wordvectors, input_data_sparse_features
 

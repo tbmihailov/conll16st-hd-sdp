@@ -24,7 +24,18 @@ def main(args):
     input_run = args[2]
     output_dir = args[3]
 
-    gold_relations = [json.loads(x) for x in open('%s/relations.json' % input_dataset)]
+    relation_file = '%s/relations.json' % input_dataset
+    gold_relations = []
+    file_line = 0
+    for x in open(relation_file):
+        try:
+            gold_relations.append(json.loads(x[x.index('{'):]))
+        except:
+            print "Error reading json file on line %s" % file_line
+            print x
+        file_line = file_line + 1
+    # gold_relations = [json.loads(x) for x in open('%s/relations.json' % input_dataset)]
+
     predicted_relations = [json.loads(x) for x in open('%s/output.json' % input_run)]
     if len(gold_relations) != len(predicted_relations):
         err_message = 'Gold standard has % instances; predicted %s instances' % \
