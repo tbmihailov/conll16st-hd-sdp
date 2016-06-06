@@ -352,6 +352,9 @@ def text_cnn_train_and_save_model_v3(x_train_s1, x_train_s2, x_train_s1s2_cross,
 
 
             def train_step(x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch):
+                print "x_batch_s1=%s, x_batch_s2=%s, x_batch_s1s2_cross=%s, y_batch=%s"%(len(x_batch_s1), len(x_batch_s2), len(x_batch_s1s2_cross), len(y_batch))
+                print "dropout_keep_prob:%s" % dropout_keep_prob
+
                 """
                 A single training step
                 """
@@ -400,6 +403,7 @@ def text_cnn_train_and_save_model_v3(x_train_s1, x_train_s2, x_train_s1s2_cross,
 
             for batch in batches:
                 x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch = zip(*batch)
+                print "y_batch"
                 train_step(x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch)
                 current_step = tf.train.global_step(sess, global_step)
                 if current_step % evaluate_every == 0:

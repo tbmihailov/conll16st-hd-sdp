@@ -272,7 +272,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
             #                          max_iter=-1, probability=False, random_state=None, shrinking=True,
             #                          tol=0.001, verbose=False)
 
-            tune = False
+            tune = True
             param_c = 0.1
 
             if tune:

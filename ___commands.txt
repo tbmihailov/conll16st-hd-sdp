@@ -33,3 +33,4 @@ Dependency based word embeddings
 
  nohup ./word2vecf -train ../conll16st-hd-sdp/resources/external/dep_embeddings/deps.contexts -wvocab wv -cvocab cv -output dim200vecs_vocab0 -size 200 -negative 15 -threads 20 > dim200vecs_vocab0_back.out 2> dim200vecs_vocab0_back.out < /dev/null &
 
+vecs2nps.py ../../conll16st-hd-sdp/resources/external/dep_embeddings/deps.words deps_300_words

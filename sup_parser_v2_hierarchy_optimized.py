@@ -50,6 +50,7 @@ from sklearn.svm import SVC
 
 from VocabEmbedding_Utilities import VocabEmbeddingUtilities
 from infer import Embeddings
+from sklearn.linear_model import LogisticRegression
 
 sys.path.append('~/semanticz')
 from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
@@ -165,8 +166,8 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
                 parse=parse, \
                 word2vec_model=word2vec_model, \
                 word2vec_index2word_set=word2vec_index2word_set, \
-                deps_model=deps_model['embeddings'], \
-                deps_vocabulary=set(deps_model['vocabulary']),
+                deps_model=deps_model, \
+                deps_vocabulary=set(deps_model._vocab),
             )
 
             if (i + 1) % 1000 == 0:
@@ -242,10 +243,17 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
 
             # Training
             # Classifier params
-            classifier_current = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
-                                     degree=3, gamma='auto', kernel='rbf',
-                                     max_iter=-1, probability=False, random_state=None, shrinking=True,
-                                     tol=0.001, verbose=False)
+            # classifier_current = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+            #                          degree=3, gamma='auto', kernel='rbf',
+            #                          max_iter=-1, probability=False, random_state=None, shrinking=True,
+            #                          tol=0.001, verbose=False)
+
+            param_c=0.1
+            classifier_current = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=param_c, fit_intercept=True,
+                               intercept_scaling=1, class_weight=None, random_state=None,
+                               solver='liblinear',
+                               max_iter=100, multi_class='ovr', verbose=0, warm_start=False,
+                               n_jobs=8)
             print 'Classifier:\n%s' % classifier_current
 
             start = time.time()
@@ -346,8 +354,8 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
                 parse=parse, \
                 word2vec_model=word2vec_model, \
                 word2vec_index2word_set=word2vec_index2word_set, \
-                deps_model=deps_model['embeddings'], \
-                deps_vocabulary=set(deps_model['vocabulary'])
+                deps_model=deps_model, \
+                deps_vocabulary=set(deps_model._vocab),
             )
 
             if len(relation_dict['Connective']['TokenList']) > 0:
@@ -490,11 +498,11 @@ if __name__ == '__main__':
     if deps_model_file != "":
         has_deps_embeddings = True
         logging.info("Loading dependency embeddings from %s" % deps_model_file)
-        deps_model = Embeddings.load(deps_model_file+".contexts", deps_model_file+".words")
+        deps_model = Embeddings.load(deps_model_file+".npy", deps_model_file+".vocab")
+        logging.info("Deps Model loaded!")
 
-
-        # deps_vocabulary = deps_model['vocabulary']
-        # deps_embeddings = deps_model['embeddings']
+        #deps_vocabulary = deps_model._vocab
+        #deps_embeddings = deps_model._vecs
 
 
     # Load Models here

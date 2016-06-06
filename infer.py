@@ -15,13 +15,18 @@ class Embeddings:
       if normalize:
          self._vecs = ugly_normalize(self._vecs)
       self._w2v = {w:i for i,w in enumerate(self._vocab)}
+      self.shape = {0: len(self._vecs), 1: len(self._vecs[0])}
 
    @classmethod
    def load(cls, vecsfile, vocabfile=None):
       return Embeddings(vecsfile, vocabfile)
 
+
    def word2vec(self, w):
       return self._vecs[self._w2v[w]]
+
+   def __getitem__(self, item):
+      return self.word2vec(item)
 
    def similar_to_vec(self, v, N=10):
       sims = self._vecs.dot(v)

@@ -34,7 +34,7 @@ word2vec_model=resources/external/w2v_embeddings/qatarliving_qc_size20_win10_min
 word2vec_load_bin=False
 # word2vec_load_bin=True # for google pretrained embeddings
 
-deps_model=resources/external/dep_embeddings/deps
+deps_model=resources/external/dep_embeddings/deps_words_300
 brownclusters_file=/resources/closed_track/brown_clusters/brown-rcv1.clean.tokenized-CoNLL03.txt-c320-freq1.txt
 
 log_file=${run_name}_$(date +%y-%m-%d-%H-%M).log

@@ -325,7 +325,11 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
                     print convolved_batch[0]
                     pickle.dump(convolved_batch, open(cross_file_name_batch, 'wb'))
 
+
                     logging.info('batch dumped in file %s' % cross_file_name)
+
+                curr_batch_size = convolved_batch.shape[0]# take the actual count as it could be the last which might have less than the specified number
+                train_x_curr_s1s2_cross_3[batch_i*500:(batch_i)*500+curr_batch_size, :, :] = convolved_batch
                 end_batch = time.time()
                 logging.info("processed in %s s" % (end_batch - start_batch))
 
