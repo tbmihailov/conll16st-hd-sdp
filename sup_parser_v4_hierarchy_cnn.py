@@ -527,7 +527,7 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
 
                     train_items_with_raw_tokens_implicit.append(copied_features_implicit)
 
-        logging.info('Vocab size: %s' % vocab_tokens)
+        # logging.info('Vocab size: %s' % vocab_tokens)
 
         vocab_and_stat_file = '%s_vocabandstat.pickle' % (save_model_file_basename)
 

@@ -354,7 +354,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         # Classifier params
         l2_reg_lambda = 0.001
         num_epochs = 50
-        batch_size = 50
+        batch_size = 53
         num_filters = 128
         dropout_keep_prob = 0.5
 
@@ -655,7 +655,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
 
                     train_items_with_raw_tokens_implicit.append(copied_features_implicit)
 
-        logging.info('Vocab size: %s' % vocab_tokens)
+        # logging.info('Vocab size: %s' % vocab_tokens)
 
         vocab_and_stat_file = '%s_vocabandstat.pickle' % (save_model_file_basename)
 

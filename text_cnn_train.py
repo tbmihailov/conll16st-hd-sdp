@@ -366,9 +366,16 @@ def text_cnn_train_and_save_model_v3(x_train_s1, x_train_s2, x_train_s1s2_cross,
                     cnn.dropout_keep_prob: dropout_keep_prob,
                     cnn.embeddings_placeholder: embeddings
                 }
-                _, step, summaries, loss, accuracy = sess.run(
-                    [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
+                # _, step, summaries, loss, accuracy = sess.run(
+                #     [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
+                #     feed_dict)
+
+                _, step, summaries, h_pool_flat, accuracy = sess.run(
+                    [train_op, global_step, train_summary_op, cnn.h_pool_flat, cnn.accuracy],
                     feed_dict)
+
+                print "h_pool_flat:"
+                print h_pool_flat
                 # time_str = datetime.datetime.now().isoformat()
                 # print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
