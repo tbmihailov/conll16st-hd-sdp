@@ -7,6 +7,8 @@
     <orderEntry type="module" module-name="wtfrnn" />
     <orderEntry type="module" module-name="semeval2016-task3-caq" />
     <orderEntry type="module" module-name="cnn-ana" />
+    <orderEntry type="module" module-name="cnn-text-classification-tf" />
+    <orderEntry type="module" module-name="dep-embeddings" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="myDocStringFormat" value="Google" />

@@ -3,7 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../cnn-ana/.idea/cnn-ana.iml" filepath="$PROJECT_DIR$/../cnn-ana/.idea/cnn-ana.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../cnn-text-classification-tf/.idea/cnn-text-classification-tf.iml" filepath="$PROJECT_DIR$/../cnn-text-classification-tf/.idea/cnn-text-classification-tf.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/conll16st-hd-sdp.iml" filepath="$PROJECT_DIR$/.idea/conll16st-hd-sdp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../dep-embeddings/.idea/dep-embeddings.iml" filepath="$PROJECT_DIR$/../dep-embeddings/.idea/dep-embeddings.iml" />
       <module fileurl="file://$PROJECT_DIR$/../semeval2016-task3-caq/.idea/semeval2016-task3-caq.iml" filepath="$PROJECT_DIR$/../semeval2016-task3-caq/.idea/semeval2016-task3-caq.iml" />
       <module fileurl="file://$PROJECT_DIR$/../wtfrnn/.idea/wtfrnn.iml" filepath="$PROJECT_DIR$/../wtfrnn/.idea/wtfrnn.iml" />
     </modules>
