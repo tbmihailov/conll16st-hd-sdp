@@ -64,6 +64,7 @@ from DiscourseSenseClassification_FeatureExtraction_v1 import DiscourseSenseClas
 from cnn_class_micro_static_extended import TextCNN_Ext
 
 from VocabEmbedding_Utilities import VocabEmbeddingUtilities
+from text_cnn_eval import text_cnn_load_model_and_eval_v4
 
 const.padding_word = "<PAD/>"
 
@@ -117,7 +118,7 @@ def get_embeddings(data, embeddings, vocab):
 
 cache_folder = '__cache/'
 
-class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
+class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
     """Sample discourse relation sense classifier
     """
 
@@ -192,6 +193,98 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         # Saving word2vec_model
         pickle.dump(classifier_current, open(save_model_file, 'wb'))
         logging.info('Model saved to %s' % save_model_file)
+
+    @staticmethod
+    def calc_and_cache_cross_convolution(filter_size_cross, items_per_batch, cores,
+                                         all_items_cnt, sent_len, embedding_size,
+                                         conv_iter,
+                                         train_x_curr_embedd_s1, train_x_curr_embedd_s2,
+                                         embeddings_len, vocab_len
+                                         ):
+
+        batches_cnt = iter = int(all_items_cnt / items_per_batch) if all_items_cnt % items_per_batch == 0 else int(
+            all_items_cnt / items_per_batch) + 1
+
+        cross_file_name = 's1s2_cov_cnt%s_emb%s_voc%s_calculated.pickle' % (
+            all_items_cnt, embeddings_len, vocab_len)
+
+        # calculate cross convolution
+        full_calc_load = False
+        if os.path.isfile(cross_file_name) and full_calc_load:
+            logging.info('Loading from file %s' % cross_file_name)
+            train_x_curr_s1s2_cross_3 = pickle.load(open(cross_file_name, 'rb'))
+        else:
+            logging.info('Calculating...')
+            start = time.time()
+
+            train_x_curr_s1s2_cross_3 = np.zeros((all_items_cnt, conv_iter, conv_iter))
+
+            # calculate and cache on batches
+            for batch_i in range(0, batches_cnt):
+                logging.info('batch %s of %s' % (batch_i + 1, batches_cnt))
+
+                cross_file_name_batch = cache_folder + 's1s2_cov_cnt%s_emb%s_voc%s_calculated_batch_%s_%s.pickle' % (
+                    all_items_cnt, embeddings_len, vocab_len, items_per_batch, batch_i)
+
+                start_batch = time.time()
+                batch_loaded = False
+                if os.path.isfile(cross_file_name_batch):
+                    logging.info('Cache file %s already exists' % cross_file_name_batch)
+                else:
+                    logging.info('File %s does not exists' % cross_file_name_batch)
+                    logging.info('Calculating cross convolution...')
+                    convolved_batch = convolve_cross_filter_batch_multicore(
+                        train_x_curr_embedd_s1[batch_i * items_per_batch:(batch_i + 1) * items_per_batch],
+                        train_x_curr_embedd_s2[batch_i * items_per_batch:(batch_i + 1) * items_per_batch],
+                        filter_size_cross, cores)
+                    print convolved_batch[0]
+                    pickle.dump(convolved_batch, open(cross_file_name_batch, 'wb'))
+
+                    logging.info('batch dumped in file %s' % cross_file_name)
+
+                # curr_batch_size = convolved_batch.shape[0]# take the actual count as it could be the last which might have less than the specified number
+                # train_x_curr_s1s2_cross_3[batch_i*500:(batch_i)*500+curr_batch_size, :, :] = convolved_batch
+                end_batch = time.time()
+                logging.info("processed in %s s" % (end_batch - start_batch))
+
+                # train_x_curr_s1s2_cross_3[batch_i*items_per_batch:(batch_i+1)*items_per_batch] = convolved_batch
+
+            end = time.time()
+            logging.info("All calculation done in %s s" % (end - start))
+            # pickle.dump(train_x_curr_s1s2_cross_3, open(cross_file_name, 'wb'))
+
+    @staticmethod
+    def load_cached_cross_convolution_batch_iter(filter_size_cross, items_per_batch, cores,
+                                      all_items_cnt, sent_len, embedding_size,
+                                      conv_iter,
+                                      train_x_curr_embedd_s1, train_x_curr_embedd_s2,
+                                      embeddings_len, vocab_len
+                                      ):
+        batches_cnt = iter = int(all_items_cnt / items_per_batch) if all_items_cnt % items_per_batch == 0 else int(
+            all_items_cnt / items_per_batch) + 1
+
+        cross_file_name = 's1s2_cov_cnt%s_emb%s_voc%s_calculated.pickle' % (
+            all_items_cnt, embeddings_len, vocab_len)
+
+        # calculate and cache on batches
+        for batch_i in range(0, batches_cnt):
+            logging.info('batch %s of %s' % (batch_i + 1, batches_cnt))
+
+            cross_file_name_batch = cache_folder + 's1s2_cov_cnt%s_emb%s_voc%s_calculated_batch_%s_%s.pickle' % (
+                all_items_cnt, embeddings_len, vocab_len, items_per_batch, batch_i)
+
+            batch_loaded = False
+            logging.info("read batch %s/%s" % (batch_i, batches_cnt))
+
+            if os.path.isfile(cross_file_name_batch):
+                logging.info('Loading from file %s' % cross_file_name_batch)
+                try:
+                    convolved_batch = pickle.load(open(cross_file_name_batch, 'rb'))
+                    batch_loaded = True
+                    yield convolved_batch, batch_i, items_per_batch
+                except:
+                    batch_loaded = False
+                    logging.error('Error loading from file %s..' % cross_file_name_batch)
 
     @staticmethod
     def filter_items_train_classifier_and_save_model_cnn(classifier_name,
@@ -281,79 +374,46 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
 
         # cross conv
         logging.info('Cross conv(s1,s2) 2x%s items...' % len(train_x_curr_s1))
-        cross_file_name = 's1s2_cov_cnt%s_emb%s_voc%s_calculated.pickle' % (len(train_x_curr_s1), len(embeddings), len(vocab))
         train_x_curr_s1s2_cross_3 = None
 
-        full_calc_load = False
-        if os.path.isfile(cross_file_name) and full_calc_load:
-            logging.info('Loading from file %s'%cross_file_name)
-            train_x_curr_s1s2_cross_3 = pickle.load(open(cross_file_name, 'rb'))
-        else:
-            logging.info('Calculating...')
-            start = time.time()
+        #################################################
+        #cross convolution and batches
+        #################################################
+        filter_size_cross = 3
+        items_per_batch = 500
+        cores = 4
+        all_items_cnt, sent_len, embedding_size = train_x_curr_embedd_s1.shape
+        conv_iter = sent_len - filter_size_cross + 1
 
-            filter_size_cross = 3
-            items_per_batch = 500
-            cores = 4
-            all_items_cnt, sent_len, embedding_size = train_x_curr_embedd_s1.shape
-            conv_iter = sent_len - filter_size_cross + 1
+        batches_cnt = iter = int(all_items_cnt / items_per_batch) if all_items_cnt % items_per_batch == 0 else int(
+            all_items_cnt / items_per_batch) + 1
 
-            train_x_curr_s1s2_cross_3 = np.zeros((all_items_cnt, conv_iter, conv_iter))
+        #calc here
+        DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross.\
+            calc_and_cache_cross_convolution(filter_size_cross, items_per_batch, cores,
+                                             all_items_cnt, sent_len, embedding_size,
+                                             conv_iter,
+                                             train_x_curr_embedd_s1, train_x_curr_embedd_s2,
+                                             len(embeddings), len(vocab)
+                                             )
 
-            batches_cnt = iter = int(all_items_cnt/items_per_batch) if all_items_cnt%items_per_batch==0 else int(all_items_cnt/items_per_batch)+1
-            for batch_i in range(0, batches_cnt):
-                logging.info('batch %s of %s'%(batch_i+1, batches_cnt))
-
-                cross_file_name_batch = cache_folder+'s1s2_cov_cnt%s_emb%s_voc%s_calculated_batch_%s_%s.pickle' % (
-                len(train_x_curr_s1), len(embeddings), len(vocab), items_per_batch, batch_i)
-
-                start_batch = time.time()
-                batch_loaded = False
-                if os.path.isfile(cross_file_name_batch):
-                    logging.info('Loading from file %s' % cross_file_name_batch)
-                    try:
-                        convolved_batch = pickle.load(open(cross_file_name_batch, 'rb'))
-                        batch_loaded = True
-                    except:
-                        batch_loaded = False
-                        logging.error('Error loading from file %s..' % cross_file_name_batch)
-
-                if not batch_loaded:
-                    convolved_batch = convolve_cross_filter_batch_multicore(train_x_curr_embedd_s1[batch_i*items_per_batch:(batch_i+1)*items_per_batch],
-                                                              train_x_curr_embedd_s2[batch_i*items_per_batch:(batch_i+1)*items_per_batch],
-                                                              filter_size_cross, cores)
-                    print convolved_batch[0]
-                    pickle.dump(convolved_batch, open(cross_file_name_batch, 'wb'))
-
-
-                    logging.info('batch dumped in file %s' % cross_file_name)
-
-                curr_batch_size = convolved_batch.shape[0]# take the actual count as it could be the last which might have less than the specified number
-                train_x_curr_s1s2_cross_3[batch_i*500:(batch_i)*500+curr_batch_size, :, :] = convolved_batch
-                end_batch = time.time()
-                logging.info("processed in %s s" % (end_batch - start_batch))
-
-                # train_x_curr_s1s2_cross_3[batch_i*items_per_batch:(batch_i+1)*items_per_batch] = convolved_batch
-
-            end = time.time()
-            logging.info("All done in in %s s" % (end - start))
-            # pickle.dump(train_x_curr_s1s2_cross_3, open(cross_file_name, 'wb'))
-
-
-        print "Cross result"
+        batch_iter_load_cached = DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross.\
+            load_cached_cross_convolution_batch_iter(filter_size_cross, items_per_batch, cores,
+                                             all_items_cnt, sent_len, embedding_size,
+                                             conv_iter,
+                                             train_x_curr_embedd_s1, train_x_curr_embedd_s2,
+                                             len(embeddings), len(vocab)
+                                             )
+        #print "Cross result"
         # print "Shape:%s" % train_x_curr_s1s2_cross_3.shape
         # print train_x_curr_s1s2_cross_3[0]
-
-
-
-
 
         # CNN CODE BELOW
 
         # Training
         # Classifier params
         l2_reg_lambda = 0.001
-        num_epochs = 50
+        num_epochs = 1
         batch_size = 53
         num_filters = 128
         dropout_keep_prob = 0.5
@@ -381,13 +441,13 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         train_to_take = int((total_train/split)*(split-1))
         train_dataset_s1 = numpy.array([x for x in train_x_curr_s1])
         train_dataset_s2 = numpy.array([x for x in train_x_curr_s2])
-        train_dataset_s1s2_cross = numpy.array([x for x in train_x_curr_s1s2_cross_3])
+        #train_dataset_s1s2_cross = numpy.array([x for x in train_x_curr_s1s2_cross_3])
 
         train_label = numpy.array([[1 if (x-1)==i else 0 for i in range(15)] for x in train_y_curr[:train_to_take]])
 
         dev_dataset_s1 = numpy.array([x for x in train_x_curr_s1[train_to_take:]])
         dev_dataset_s2 = numpy.array([x for x in train_x_curr_s2[train_to_take:]])
-        dev_dataset_s1s2_cross = numpy.array([x for x in train_x_curr_s1s2_cross_3[train_to_take:]])
+        #dev_dataset_s1s2_cross = numpy.array([x for x in train_x_curr_s1s2_cross_3[train_to_take:]])
 
         dev_label = numpy.array([[1 if (x - 1) == i else 0 for i in range(15)] for x in train_y_curr[train_to_take:]])
 
@@ -424,22 +484,23 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         # average_accuracy = cnn.valid_accuracy
 
 
-        from text_cnn_train import text_cnn_train_and_save_model_v3
+        from text_cnn_train import text_cnn_train_and_save_model_v4
 
         allow_soft_placement = True
         log_device_placement = False
 
         evaluate_every = len(train_dataset_s1)/batch_size
-        checkpoint_every = 2*evaluate_every
+        checkpoint_every = 5*evaluate_every
 
-        text_cnn_train_and_save_model_v3(x_train_s1=train_dataset_s1,
+        text_cnn_train_and_save_model_v4(x_train_s1=train_dataset_s1,
                                          x_train_s2=train_dataset_s2,
-                                         x_train_s1s2_cross=train_x_curr_s1s2_cross_3,
+                                         #x_train_s1s2_cross=train_x_curr_s1s2_cross_3,
                                          y_train=train_label,
                                          x_dev_s1=dev_dataset_s1,
                                          x_dev_s2=dev_dataset_s2,
-                                         x_dev_s1s2_cross=dev_dataset_s1s2_cross,
+                                         #x_dev_s1s2_cross=dev_dataset_s1s2_cross,
                                          y_dev=dev_label,
+                                         loaded_cross_batch_iter=batch_iter_load_cached,
                                          out_dir=save_model_file,
                                          allow_soft_placement=allow_soft_placement,
                                          log_device_placement=log_device_placement,
@@ -697,7 +758,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         save_model_file_classifier_current = '%s_%s.tensorflow' % (save_model_file_basename, classifier_name)
 
 
-        DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross\
+        DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross\
             .filter_items_train_classifier_and_save_model_cnn(classifier_name=classifier_name,
                                                               class_mapping_curr=class_mapping_curr,
                                                               relation_type=relation_type,
@@ -720,7 +781,7 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         class_mapping_curr = class_mapping_flat
         save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
 
-        DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross\
+        DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross\
             .filter_items_train_classifier_and_save_model_logreg(classifier_name=classifier_name,
                                                                 class_mapping_curr=class_mapping_curr,
                                                                 relation_type=relation_type,
@@ -897,13 +958,45 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
             curr_train_tokens_idx_s2 = [vocabulary[x] for x in curr_train_tokens_s2]
             train_x_curr_s2.append(curr_train_tokens_idx_s2)
 
+        embeddings = vocab_embeddings['embeddings']
+        vocab = vocab_embeddings['vocabulary']
 
+        train_x_curr_embedd_s1 = np.array(get_embeddings(train_x_curr_s1, embeddings, vocab))
+        train_x_curr_embedd_s2 = np.array(get_embeddings(train_x_curr_s2, embeddings, vocab))
+
+        #################################################
+        # cross convolution and batches
+        #################################################
+        filter_size_cross = 3
+        items_per_batch = 500
+        cores = 4
+        all_items_cnt, sent_len, embedding_size = train_x_curr_embedd_s1.shape
+        conv_iter = sent_len - filter_size_cross + 1
+
+        batches_cnt = iter = int(all_items_cnt / items_per_batch) if all_items_cnt % items_per_batch == 0 else int(
+            all_items_cnt / items_per_batch) + 1
+
+        # calc here
+        DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross. \
+            calc_and_cache_cross_convolution(filter_size_cross, items_per_batch, cores,
+                                             all_items_cnt, sent_len, embedding_size,
+                                             conv_iter,
+                                             train_x_curr_embedd_s1, train_x_curr_embedd_s2,
+                                             len(embeddings), len(vocab)
+                                             )
+
+        batch_iter_load_cached = DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross. \
+            load_cached_cross_convolution_batch_iter(filter_size_cross, items_per_batch, cores,
+                                                     all_items_cnt, sent_len, embedding_size,
+                                                     conv_iter,
+                                                     train_x_curr_embedd_s1, train_x_curr_embedd_s2,
+                                                     len(embeddings), len(vocab)
+                                                     )
 
 
         print "Embeddings[%s] : %s"%(100, vocab_embeddings['embeddings'][100])
         print "train_x_curr: %s"%len(train_x_curr_s1)
-        predictions_y = text_cnn_load_model_and_eval_v2(x_test_s1=train_x_curr_s1,
-                                                        x_test_s2=train_x_curr_s2,
+        predictions_y = text_cnn_load_model_and_eval_v4(loaded_cross_batch_iter=batch_iter_load_cached,
                                                         checkpoint_file=checkpoint_file,
                                                         allow_soft_placement=allow_soft_placement,
                                                         log_device_placement=log_device_placement,
@@ -1071,7 +1164,7 @@ if __name__ == '__main__':
     CommonUtilities.write_dictionary_to_file(class_mapping, class_mapping_file)
 
     # RUN PARSER
-    parser = DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(valid_senses=valid_senses,
+    parser = DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(valid_senses=valid_senses,
                                                                     input_run=input_run,
                                                                     input_dataset=input_dataset,
                                                                     output_dir=output_dir,

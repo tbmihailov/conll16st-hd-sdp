@@ -221,7 +221,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
 
         def filter_items_train_classifier_and_save_model(classifier_name, class_mapping_curr, relation_type,
                                                          train_x, train_y_txt, train_y_relation_types,
-                                                         save_model_file, save_scale_file_current, scale_features=False):
+                                                         save_model_file, save_scale_file_current, scale_features=False, class_weights=None):
             """
             Filters items by given params, trains the classifier and saves the word2vec_model to a file.
             Args:
@@ -293,8 +293,9 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
                     param_c = gcv.best_params_['C']
                     logging.info("best C=%s" % param_c)
 
+            print "class_weight:%s"%class_weights
             classifier_current = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=param_c, fit_intercept=True,
-                                                    intercept_scaling=1, class_weight=None, random_state=None,
+                                                    intercept_scaling=1, class_weight=class_weights, random_state=None,
                                                     solver='liblinear',
                                                     max_iter=100, multi_class='ovr', verbose=0, warm_start=False, n_jobs=8)
 
@@ -349,7 +350,8 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
                                                      train_y_relation_types=train_y_relation_types,
                                                      save_model_file=save_model_file_classifier_current,
                                                      save_scale_file_current=save_scale_file_classifier_current,
-                                                     scale_features=scale_features)
+                                                     scale_features=scale_features,
+                                                     )
 
     def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features,
                        load_scale_file_basename, use_connectives_sim=False):

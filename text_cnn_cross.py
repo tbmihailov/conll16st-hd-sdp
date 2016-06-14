@@ -16,12 +16,14 @@ class TextCNNModel_Cross_Conv(object):
             l2_reg_lambda=0.0,
             filter_sizes_cross=[3,4,5]):
 
+        print_debug=False
         # Placeholders for input, output and dropout
-        self.input_x_s1 = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_s1")
-        self.input_x_s2 = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_s2")
+        #self.input_x_s1 = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_s1")
+        #self.input_x_s2 = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_s2")
 
-        print "sequence_length:"
-        print sequence_length
+        if print_debug:
+            print "sequence_length:"
+            print sequence_length
         self.input_x_s1s2_cross = tf.placeholder(tf.float32, [None, sequence_length-filter_size_cross+1, sequence_length-filter_size_cross+1], name="input_x_s1s2_cross")
         # self.input_x_s1s2_cross = tf.placeholder(tf.float32, [None, sequence_length], name="input_x_s1s2_cross")
 
@@ -45,19 +47,20 @@ class TextCNNModel_Cross_Conv(object):
             self.embeddings_placeholder = tf.placeholder(tf.float32, shape=[self.embeddings_number, self.embedding_size])
             # embeddings_tuned = tf.Variable(embeddings_placeholder)
 
-            self.embedded_chars_s1 = tf.nn.embedding_lookup(self.embeddings_placeholder, self.input_x_s1)
-            self.embedded_chars_expanded_s1 = tf.expand_dims(self.embedded_chars_s1, -1)
-            print "embedded_chars_expanded_s1:"
-            print self.embedded_chars_expanded_s1
+            #self.embedded_chars_s1 = tf.nn.embedding_lookup(self.embeddings_placeholder, self.input_x_s1)
+            #self.embedded_chars_expanded_s1 = tf.expand_dims(self.embedded_chars_s1, -1)
+            #print "embedded_chars_expanded_s1:"
+            #print self.embedded_chars_expanded_s1
 
-            self.embedded_chars_s2 = tf.nn.embedding_lookup(self.embeddings_placeholder, self.input_x_s2)
-            self.embedded_chars_expanded_s2 = tf.expand_dims(self.embedded_chars_s2, -1)
-            print "embedded_chars_expanded_s2:"
-            print self.embedded_chars_expanded_s2
+            #self.embedded_chars_s2 = tf.nn.embedding_lookup(self.embeddings_placeholder, self.input_x_s2)
+            #self.embedded_chars_expanded_s2 = tf.expand_dims(self.embedded_chars_s2, -1)
+            #print "embedded_chars_expanded_s2:"
+            #print self.embedded_chars_expanded_s2
 
             self.embedded_chars_expanded_s1s2_cross = tf.expand_dims(self.input_x_s1s2_cross, -1)
-            print "embedded_chars_expanded_s1s2_cross:"
-            print self.embedded_chars_expanded_s1s2_cross
+            if print_debug:
+                print "embedded_chars_expanded_s1s2_cross:"
+                print self.embedded_chars_expanded_s1s2_cross
 
             # self.embedded_chars_s1s2_matmul = tf.batch_matmul(self.embedded_chars_expanded_s1, self.embedded_chars_expanded_s2)
             # self.embedded_chars_s1s2_matmul_expanded = tf.expand_dims(self.embedded_chars_s1s2_matmul, -1)
@@ -71,12 +74,14 @@ class TextCNNModel_Cross_Conv(object):
             with tf.name_scope("cross-conv-maxpool-%s" % filter_size):
                 # Convolution Layer
                 filter_shape_cross = [filter_size, sequence_length - filter_size_cross +1, 1, num_filters]
-                print "filter_shape_cross:"
-                print filter_shape_cross
+                if print_debug:
+                    print "filter_shape_cross:"
+                    print filter_shape_cross
 
                 W_cross = tf.Variable(tf.truncated_normal(filter_shape_cross, stddev=0.1), name="W_cross")
-                print "W_cross:"
-                print W_cross
+                if print_debug:
+                    print "W_cross:"
+                    print W_cross
                 b = tf.Variable(tf.constant(0.1, shape=[num_filters]), name="b")
 
                 # S1S2 Cross
@@ -87,18 +92,22 @@ class TextCNNModel_Cross_Conv(object):
                     padding="VALID",
                     name="conv_s1s2_cross")
 
-                print "conv_s1s2_cross"
-                print conv_s1s2_cross
+                if print_debug:
+                    print "conv_s1s2_cross"
+                    print conv_s1s2_cross
 
                 # Apply nonlinearity
                 h_s1s2_cross = tf.nn.relu(tf.nn.bias_add(conv_s1s2_cross, b), name="relu_s1s2_cross")
 
-                print "h_s1s2_cross"
-                print h_s1s2_cross
+                if print_debug:
+                    print "h_s1s2_cross"
+                    print h_s1s2_cross
 
                 ksize = [1, sequence_length - filter_size_cross - filter_size + 1+1, 1, 1]
-                print "ksize:"
-                print ksize
+                if print_debug:
+                    print "ksize:"
+                    print ksize
+
                 # Maxpooling over the outputs
                 pooled_cross_s1s2_cross = tf.nn.max_pool(
                     h_s1s2_cross,
@@ -107,8 +116,9 @@ class TextCNNModel_Cross_Conv(object):
                     padding='VALID',
                     name="pool_s1s2_cross")
 
-                print "pooled_cross_s1s2_cross"
-                print pooled_cross_s1s2_cross
+                if print_debug:
+                    print "pooled_cross_s1s2_cross"
+                    print pooled_cross_s1s2_cross
 
                 pooled_outputs_cross_s1s2.append(pooled_cross_s1s2_cross)
 
@@ -198,23 +208,27 @@ class TextCNNModel_Cross_Conv(object):
         num_filters_total = num_filters * len(filter_sizes)
         # num_filters_total = 2 * num_filters * len(filter_sizes)  # multiplied by 2
 
-        print "pooled_outputs_cross_s1s2"
-        print pooled_outputs_cross_s1s2
+        if print_debug:
+            print "pooled_outputs_cross_s1s2"
+            print pooled_outputs_cross_s1s2
 
         self.h_pool = tf.concat(3, pooled_outputs_cross_s1s2)
-        print "self.h_pool"
-        print self.h_pool
+        if print_debug:
+            print "self.h_pool"
+            print self.h_pool
         self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
 
-        print "self.h_pool_flat"
-        print self.h_pool_flat
+        if print_debug:
+            print "self.h_pool_flat"
+            print self.h_pool_flat
 
         # Add dropout
         with tf.name_scope("dropout"):
             self.h_drop = tf.nn.dropout(self.h_pool_flat, self.dropout_keep_prob)
 
-            print "self.h_drop"
-            print self.h_drop
+            if print_debug:
+                print "self.h_drop"
+                print self.h_drop
 
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):

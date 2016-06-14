@@ -421,6 +421,170 @@ def text_cnn_train_and_save_model_v3(x_train_s1, x_train_s2, x_train_s1s2_cross,
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     print("Saved model checkpoint to {}\n".format(path))
 
+def text_cnn_train_and_save_model_v4(x_train_s1, x_train_s2, y_train, # , x_train_s1s2_cross
+                                     x_dev_s1, x_dev_s2, y_dev, #, x_dev_s1s2_cross
+                                     loaded_cross_batch_iter,
+                                     out_dir,
+                                     allow_soft_placement,
+                                     log_device_placement,
+                                     embeddings,
+                                     vocabulary,
+                                     filter_sizes,
+                                     num_filters,
+                                     l2_reg_lambda,
+                                     dropout_keep_prob,
+                                     batch_size,
+                                     num_epochs,
+                                     evaluate_every,
+                                     checkpoint_every,
+                                     num_classes):
+    global sess, cnn, global_step, train_op, train_summary_op, train_summary_writer, dev_summary_op
+    with tf.Graph().as_default():
+        session_conf = tf.ConfigProto(
+            allow_soft_placement=allow_soft_placement,
+            log_device_placement=log_device_placement)
+        sess = tf.Session(config=session_conf)
+        with sess.as_default():
+            cnn = TextCNNModel_Cross_Conv(
+                sequence_length=x_train_s1.shape[1],
+                num_classes=num_classes,
+                vocab_size=len(vocabulary),
+                filter_size_cross=3,
+                embeddings=embeddings,
+                filter_sizes=filter_sizes,
+                num_filters=num_filters,
+                l2_reg_lambda=l2_reg_lambda)
+
+            # Define Training procedure
+            global_step = tf.Variable(0, name="global_step", trainable=False)
+            optimizer = tf.train.AdamOptimizer(1e-3)
+            grads_and_vars = optimizer.compute_gradients(cnn.loss)
+            train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
+
+            # Keep track of gradient values and sparsity (optional)
+            grad_summaries = []
+            for g, v in grads_and_vars:
+                if g is not None:
+                    grad_hist_summary = tf.histogram_summary("{}/grad/hist".format(v.name), g)
+                    sparsity_summary = tf.scalar_summary("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+                    grad_summaries.append(grad_hist_summary)
+                    grad_summaries.append(sparsity_summary)
+            grad_summaries_merged = tf.merge_summary(grad_summaries)
+
+            # Summaries for loss and accuracy
+            loss_summary = tf.scalar_summary("loss", cnn.loss)
+            acc_summary = tf.scalar_summary("accuracy", cnn.accuracy)
+
+            # Train Summaries
+            train_summary_op = tf.merge_summary([loss_summary, acc_summary, grad_summaries_merged])
+            train_summary_dir = os.path.join(out_dir, "summaries", "train")
+            train_summary_writer = tf.train.SummaryWriter(train_summary_dir, sess.graph_def)
+
+            # Dev summaries
+            dev_summary_op = tf.merge_summary([loss_summary, acc_summary])
+            dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
+            dev_summary_writer = tf.train.SummaryWriter(dev_summary_dir, sess.graph_def)
+
+            # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
+            checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
+            checkpoint_prefix = os.path.join(checkpoint_dir, "model")
+            if not os.path.exists(checkpoint_dir):
+                os.makedirs(checkpoint_dir)
+            saver = tf.train.Saver(tf.all_variables())
+
+            # Initialize all variables
+            sess.run(tf.initialize_all_variables())
+
+
+            def train_step(x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch):
+                #print "x_batch_s1=%s, x_batch_s2=%s, x_batch_s1s2_cross=%s, y_batch=%s" % (
+                #0 if x_batch_s1==None else (x_batch_s1), 0 if x_batch_s2==None else (x_batch_s2), len(x_batch_s1s2_cross), len(y_batch))
+                #print "dropout_keep_prob:%s" % dropout_keep_prob
+
+                """
+                A single training step
+                """
+                feed_dict = {
+                    #cnn.input_x_s1: x_batch_s1,
+                    #cnn.input_x_s2: x_batch_s2,
+                    cnn.input_x_s1s2_cross: x_batch_s1s2_cross,
+                    cnn.input_y: y_batch,
+                    cnn.dropout_keep_prob: dropout_keep_prob,
+                    cnn.embeddings_placeholder: embeddings
+                }
+                # _, step, summaries, loss, accuracy = sess.run(
+                #     [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
+                #     feed_dict)
+
+                _, step, summaries, h_pool_flat, accuracy = sess.run(
+                    [train_op, global_step, train_summary_op, cnn.h_pool_flat, cnn.accuracy],
+                    feed_dict)
+
+                #print "h_pool_flat:"
+                #print h_pool_flat
+                # time_str = datetime.datetime.now().isoformat()
+                # print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                train_summary_writer.add_summary(summaries, step)
+
+
+            def dev_step(x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch, writer=None):
+                """
+                Evaluates model on a dev set
+                """
+                feed_dict = {
+                    #cnn.input_x_s1: x_batch_s1,
+                    #cnn.input_x_s2: x_batch_s2,
+                    cnn.input_x_s1s2_cross: x_batch_s1s2_cross,
+                    cnn.input_y: y_batch,
+                    cnn.dropout_keep_prob: 1.0,
+                    cnn.embeddings_placeholder: embeddings
+                }
+                step, summaries, loss, accuracy = sess.run(
+                    [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
+                    feed_dict)
+                time_str = datetime.datetime.now().isoformat()
+                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                if writer:
+                    writer.add_summary(summaries, step)
+
+            x_dev_s1s2_cross = None
+            y_dev = None
+            for loaded_cross_batch, batch_i, items_per_batch in loaded_cross_batch_iter:
+                # Generate batches
+
+                # batches = data_helpers.batch_iter(
+                #     list(zip(x_train_s1, x_train_s2, loaded_cross_batch, y_train)), batch_size, num_epochs)
+
+                curr_batch_y_train = y_train[batch_i*items_per_batch:batch_i*items_per_batch+loaded_cross_batch.shape[0]]
+                batches = data_helpers.batch_iter(
+                    list(zip(loaded_cross_batch, curr_batch_y_train)), batch_size, num_epochs)
+
+                if x_dev_s1s2_cross==None:
+                    x_dev_s1s2_cross = loaded_cross_batch[:100]
+                    y_dev = curr_batch_y_train[:100]
+
+
+
+                # Training loop. For each batch...
+
+                for batch in batches:
+                    #x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch = zip(*batch)
+                    x_batch_s1s2_cross, y_batch = zip(*batch)
+
+                    #print "y_batch"
+                    #train_step(x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch)
+                    train_step(None, None, x_batch_s1s2_cross, y_batch)
+
+                    current_step = tf.train.global_step(sess, global_step)
+                    if current_step % evaluate_every == 0:
+                        print("\nEvaluation:")
+                        #dev_step(x_dev_s1, x_dev_s2, x_dev_s1s2_cross, y_dev, writer=dev_summary_writer)
+                        dev_step(None, None, x_dev_s1s2_cross, y_dev, writer=dev_summary_writer)
+                        print("")
+                    if current_step % checkpoint_every == 0:
+                        path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                        print("Saved model checkpoint to {}\n".format(path))
+
 if __name__ == '__main__':
     # Parameters
     # ==================================================
