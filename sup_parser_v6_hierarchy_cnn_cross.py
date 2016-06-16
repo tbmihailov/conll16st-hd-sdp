@@ -404,6 +404,22 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
                                              train_x_curr_embedd_s1, train_x_curr_embedd_s2,
                                              len(embeddings), len(vocab)
                                              )
+
+        batch_load_cached_conv_settings = filter_size_cross, items_per_batch, cores,\
+                                              all_items_cnt, sent_len, embedding_size,\
+                                              conv_iter,\
+                                              train_x_curr_embedd_s1, train_x_curr_embedd_s2,\
+                                              len(embeddings), len(vocab)\
+
+        # l_filter_size_cross, l_items_per_batch, l_cores, \
+        # l_all_items_cnt, l_sent_len, l_embedding_size, \
+        # l_conv_iter, \
+        # l_train_x_curr_embedd_s1, l_train_x_curr_embedd_s2, \
+        # l_embeddings_len, l_vocab_len = batch_load_cached_conv_settings
+
+
+
+
         #print "Cross result"
         # print "Shape:%s" % train_x_curr_s1s2_cross_3.shape
         # print train_x_curr_s1s2_cross_3[0]
@@ -500,8 +516,8 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
                                          x_dev_s2=dev_dataset_s2,
                                          #x_dev_s1s2_cross=dev_dataset_s1s2_cross,
                                          y_dev=dev_label,
-                                         loaded_cross_batch_iter=batch_iter_load_cached,
-                                         out_dir=save_model_file,
+                                         #loaded_cross_batch_iter=batch_iter_load_cached,
+                                         batch_load_cached_conv_settings=batch_load_cached_conv_settings,
                                          allow_soft_placement=allow_soft_placement,
                                          log_device_placement=log_device_placement,
                                          embeddings=vocab_embeddings['embeddings'],
@@ -745,10 +761,26 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
             logging.info("No scaling!")
 
         logging.info('======HIERARCHICAL TRAINING======')
-
         ###########################
         ### FILTER AND TRAIN ######
         ###########################
+        # Classifier: Explicit, Level 1
+        relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
+        classifier_name = 'EXP_LEVEL1'
+        # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
+        class_mapping_curr = class_mapping_flat
+        save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
+
+        DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross \
+            .filter_items_train_classifier_and_save_model_logreg(classifier_name=classifier_name,
+                                                                 class_mapping_curr=class_mapping_curr,
+                                                                 relation_type=relation_type,
+                                                                 train_x=train_x,
+                                                                 train_y_txt=train_y_txt_level2,
+                                                                 train_y_relation_types=train_y_relation_types,
+                                                                 save_model_file=save_model_file_classifier_current)
+
+
 
         # Classifier: Non-Explicit, Level 1
         relation_type = 0  # 1 Explicit, 0 Non-Explicit, -1 All
@@ -774,21 +806,7 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
                                                               embeddings_size=word2vec_num_features
                                                               )
 
-        # Classifier: Explicit, Level 1
-        relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
-        classifier_name = 'EXP_LEVEL1'
-        # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
-        class_mapping_curr = class_mapping_flat
-        save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
 
-        DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross\
-            .filter_items_train_classifier_and_save_model_logreg(classifier_name=classifier_name,
-                                                                class_mapping_curr=class_mapping_curr,
-                                                                relation_type=relation_type,
-                                                                train_x=train_x,
-                                                                train_y_txt=train_y_txt_level2,
-                                                                train_y_relation_types=train_y_relation_types,
-                                                                save_model_file=save_model_file_classifier_current)
 
     def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features,
                        load_scale_file_basename, hierachical_classifier=False):
@@ -832,6 +850,7 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
         # Classifier: Explicit, Level 1
         relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
         classifier_name = 'EXP_LEVEL1'
+        logger.info("================%s================"%classifier_name)
         # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
         class_mapping_curr = self.class_mapping
         load_model_file_classifier_current = '%s_%s.modelfile' % (load_model_file_basename, classifier_name)
@@ -848,6 +867,7 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
         # Classifier: Non-Explicit, Level 1
         relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
         classifier_name = 'NONEXP_LEVEL1_CNN'
+        logger.info("================%s================" % classifier_name)
         # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
         class_mapping_curr = self.class_mapping
         load_model_file_classifier_current = '%s_%s.tensorflow' % (load_model_file_basename, classifier_name)
