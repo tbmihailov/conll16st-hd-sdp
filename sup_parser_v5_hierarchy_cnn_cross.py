@@ -248,8 +248,8 @@ class DiscourseSenseClassifier_Sup_v5_Hierarchical_CNN_Cross(object):
         # Training
         # Classifier params
         l2_reg_lambda = 0.001
-        num_epochs = 100
-        batch_size = 50
+        num_epochs = 200 # default 100
+        batch_size = 100 # default 50
         num_filters = 128
         dropout_keep_prob = 0.5
 
