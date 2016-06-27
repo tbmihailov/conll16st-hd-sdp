@@ -85,7 +85,6 @@ def text_cnn_train_and_save_model(x_train, y_train,
             # Initialize all variables
             sess.run(tf.initialize_all_variables())
 
-
             def train_step(x_batch, y_batch):
                 """
                 A single training step
@@ -99,8 +98,8 @@ def text_cnn_train_and_save_model(x_train, y_train,
                 _, step, summaries, loss, accuracy = sess.run(
                     [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
                     feed_dict)
-                # time_str = datetime.datetime.now().isoformat()
-                # print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                time_str = datetime.datetime.now().isoformat()
+                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
 
 
@@ -137,9 +136,11 @@ def text_cnn_train_and_save_model(x_train, y_train,
                     print("\nEvaluation:")
                     dev_step(x_dev, y_dev, writer=dev_summary_writer)
                     print("")
-                if current_step % checkpoint_every == 0:
-                    path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                    print("Saved model checkpoint to {}\n".format(path))
+                #if current_step % checkpoint_every == 0:
+                #    path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                #    print("Saved model checkpoint to {}\n".format(path))
+            path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+            print("Saved model checkpoint to {}\n".format(path))
 
 
 
@@ -423,7 +424,8 @@ def text_cnn_train_and_save_model_v3(x_train_s1, x_train_s2, x_train_s1s2_cross,
 
 def text_cnn_train_and_save_model_v4(x_train_s1, x_train_s2, y_train, # , x_train_s1s2_cross
                                      x_dev_s1, x_dev_s2, y_dev, #, x_dev_s1s2_cross
-                                     loaded_cross_batch_iter,
+                                     #loaded_cross_batch_iter, this is called in the body
+                                     batch_load_cached_conv_settings,
                                      out_dir,
                                      allow_soft_placement,
                                      log_device_placement,
@@ -516,14 +518,14 @@ def text_cnn_train_and_save_model_v4(x_train_s1, x_train_s2, y_train, # , x_trai
                 #     [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
                 #     feed_dict)
 
-                _, step, summaries, h_pool_flat, accuracy = sess.run(
-                    [train_op, global_step, train_summary_op, cnn.h_pool_flat, cnn.accuracy],
+                _, step, summaries, h_pool_flat, accuracy, loss = sess.run(
+                    [train_op, global_step, train_summary_op, cnn.h_pool_flat, cnn.accuracy, cnn.loss],
                     feed_dict)
 
                 #print "h_pool_flat:"
                 #print h_pool_flat
-                # time_str = datetime.datetime.now().isoformat()
-                # print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                time_str = datetime.datetime.now().isoformat()
+                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
 
 
@@ -543,47 +545,56 @@ def text_cnn_train_and_save_model_v4(x_train_s1, x_train_s2, y_train, # , x_trai
                     [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
                     feed_dict)
                 time_str = datetime.datetime.now().isoformat()
+                print("----------EVAL-----------")
                 print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
                 if writer:
                     writer.add_summary(summaries, step)
 
             x_dev_s1s2_cross = None
             y_dev = None
-            for loaded_cross_batch, batch_i, items_per_batch in loaded_cross_batch_iter:
-                # Generate batches
 
-                # batches = data_helpers.batch_iter(
-                #     list(zip(x_train_s1, x_train_s2, loaded_cross_batch, y_train)), batch_size, num_epochs)
+            l_items_per_batch, ll_all_items_cnt, l_embeddings_len, l_vocab_len = batch_load_cached_conv_settings
+            for epoch in range(0, num_epochs):
+                print("===Epoch %s of %s===" % (epoch,num_epochs))
+                from sup_parser_v6_hierarchy_cnn_cross import DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross
+                # this loads data from disk! slow!!!
+                loaded_cross_batch_iter = DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross.\
+                    load_cached_cross_convolution_batch_iter(l_items_per_batch,
+                                                             ll_all_items_cnt, l_embeddings_len, l_vocab_len)
+                for loaded_cross_batch, batch_i, items_per_batch in loaded_cross_batch_iter:
+                    # Generate batches
 
-                curr_batch_y_train = y_train[batch_i*items_per_batch:batch_i*items_per_batch+loaded_cross_batch.shape[0]]
-                batches = data_helpers.batch_iter(
-                    list(zip(loaded_cross_batch, curr_batch_y_train)), batch_size, num_epochs)
+                    # batches = data_helpers.batch_iter(
+                    #     list(zip(x_train_s1, x_train_s2, loaded_cross_batch, y_train)), batch_size, num_epochs)
 
-                if x_dev_s1s2_cross==None:
-                    x_dev_s1s2_cross = loaded_cross_batch[:100]
-                    y_dev = curr_batch_y_train[:100]
+                    curr_batch_y_train = y_train[batch_i*items_per_batch:batch_i*items_per_batch+loaded_cross_batch.shape[0]]
+                    batches = data_helpers.batch_iter(
+                        list(zip(loaded_cross_batch, curr_batch_y_train)), batch_size, num_epochs=1)# 1 epoch
 
+                    if x_dev_s1s2_cross==None:
+                        x_dev_s1s2_cross = loaded_cross_batch[:100]
+                        y_dev = curr_batch_y_train[:100]
 
+                    # Training loop. For each batch...
 
-                # Training loop. For each batch...
+                    for batch in batches:
+                        #x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch = zip(*batch)
+                        x_batch_s1s2_cross, y_batch = zip(*batch)
 
-                for batch in batches:
-                    #x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch = zip(*batch)
-                    x_batch_s1s2_cross, y_batch = zip(*batch)
+                        #print "y_batch"
+                        #train_step(x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch)
+                        train_step(None, None, x_batch_s1s2_cross, y_batch)
 
-                    #print "y_batch"
-                    #train_step(x_batch_s1, x_batch_s2, x_batch_s1s2_cross, y_batch)
-                    train_step(None, None, x_batch_s1s2_cross, y_batch)
+                        current_step = tf.train.global_step(sess, global_step)
+                        if current_step % evaluate_every == 0:
+                            print("\nEvaluation:")
+                            #dev_step(x_dev_s1, x_dev_s2, x_dev_s1s2_cross, y_dev, writer=dev_summary_writer)
+                            dev_step(None, None, x_dev_s1s2_cross, y_dev, writer=dev_summary_writer)
+                            print("")
 
-                    current_step = tf.train.global_step(sess, global_step)
-                    if current_step % evaluate_every == 0:
-                        print("\nEvaluation:")
-                        #dev_step(x_dev_s1, x_dev_s2, x_dev_s1s2_cross, y_dev, writer=dev_summary_writer)
-                        dev_step(None, None, x_dev_s1s2_cross, y_dev, writer=dev_summary_writer)
-                        print("")
-                    if current_step % checkpoint_every == 0:
-                        path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                        print("Saved model checkpoint to {}\n".format(path))
+                # save on each epoch
+                path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                print("Saved model checkpoint to {}\n".format(path))
 
 if __name__ == '__main__':
     # Parameters

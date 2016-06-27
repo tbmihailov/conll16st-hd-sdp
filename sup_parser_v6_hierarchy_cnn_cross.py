@@ -254,12 +254,8 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
             # pickle.dump(train_x_curr_s1s2_cross_3, open(cross_file_name, 'wb'))
 
     @staticmethod
-    def load_cached_cross_convolution_batch_iter(filter_size_cross, items_per_batch, cores,
-                                      all_items_cnt, sent_len, embedding_size,
-                                      conv_iter,
-                                      train_x_curr_embedd_s1, train_x_curr_embedd_s2,
-                                      embeddings_len, vocab_len
-                                      ):
+    def load_cached_cross_convolution_batch_iter(items_per_batch,
+                                      all_items_cnt, embeddings_len, vocab_len):
         batches_cnt = iter = int(all_items_cnt / items_per_batch) if all_items_cnt % items_per_batch == 0 else int(
             all_items_cnt / items_per_batch) + 1
 
@@ -397,25 +393,12 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
                                              len(embeddings), len(vocab)
                                              )
 
-        batch_iter_load_cached = DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross.\
-            load_cached_cross_convolution_batch_iter(filter_size_cross, items_per_batch, cores,
-                                             all_items_cnt, sent_len, embedding_size,
-                                             conv_iter,
-                                             train_x_curr_embedd_s1, train_x_curr_embedd_s2,
-                                             len(embeddings), len(vocab)
-                                             )
+        # batch_iter_load_cached = DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross.\
+        #     load_cached_cross_convolution_batch_iter(items_per_batch,
+        #                                      all_items_cnt, len(embeddings), len(vocab))
 
-        batch_load_cached_conv_settings = filter_size_cross, items_per_batch, cores,\
-                                              all_items_cnt, sent_len, embedding_size,\
-                                              conv_iter,\
-                                              train_x_curr_embedd_s1, train_x_curr_embedd_s2,\
-                                              len(embeddings), len(vocab)\
-
-        # l_filter_size_cross, l_items_per_batch, l_cores, \
-        # l_all_items_cnt, l_sent_len, l_embedding_size, \
-        # l_conv_iter, \
-        # l_train_x_curr_embedd_s1, l_train_x_curr_embedd_s2, \
-        # l_embeddings_len, l_vocab_len = batch_load_cached_conv_settings
+        batch_load_cached_conv_settings = items_per_batch, all_items_cnt, len(embeddings), len(vocab)
+        # l_items_per_batch, ll_all_items_cnt, l_embeddings_len, l_vocab_len = batch_load_cached_conv_settings # this is how these params will be loaded inside the traing model function
 
 
 
@@ -429,7 +412,7 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
         # Training
         # Classifier params
         l2_reg_lambda = 0.001
-        num_epochs = 1
+        num_epochs = 50
         batch_size = 53
         num_filters = 128
         dropout_keep_prob = 0.5
@@ -518,6 +501,7 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
                                          y_dev=dev_label,
                                          #loaded_cross_batch_iter=batch_iter_load_cached,
                                          batch_load_cached_conv_settings=batch_load_cached_conv_settings,
+                                         out_dir=save_model_file,
                                          allow_soft_placement=allow_soft_placement,
                                          log_device_placement=log_device_placement,
                                          embeddings=vocab_embeddings['embeddings'],
@@ -1006,10 +990,8 @@ class DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross(object):
                                              )
 
         batch_iter_load_cached = DiscourseSenseClassifier_Sup_v6_Hierarchical_CNN_Cross. \
-            load_cached_cross_convolution_batch_iter(filter_size_cross, items_per_batch, cores,
-                                                     all_items_cnt, sent_len, embedding_size,
-                                                     conv_iter,
-                                                     train_x_curr_embedd_s1, train_x_curr_embedd_s2,
+            load_cached_cross_convolution_batch_iter(items_per_batch,
+                                                     all_items_cnt,
                                                      len(embeddings), len(vocab)
                                                      )
 

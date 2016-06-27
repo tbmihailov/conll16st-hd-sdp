@@ -4,12 +4,12 @@
 #input_dataset_train=data/conll16st-en-01-12-16-trial
 #input_dataset_test=data/conll16st-en-01-12-16-trial
 
-input_dataset_train=data/conll16-st-dev-en-2016-03-29
-input_dataset_test=data/conll16-st-dev-en-2016-03-29
+input_dataset_train=data/conll16-st-train-en-2016-03-29
+input_dataset_test=data/conll16st-en-03-29-16-test
 
-run_type=svm_cnn
+run_type=svm_base
 
-run_name=${run_type}_sup_v6_dev
+run_name=${run_type}_sup_v2_hier_depemb_tr16test16
 if [ -n "$1" ]
 then
   run_name=$1
@@ -34,5 +34,8 @@ word2vec_model=resources/external/w2v_embeddings/qatarliving_qc_size20_win10_min
 word2vec_load_bin=False
 # word2vec_load_bin=True # for google pretrained embeddings
 
+deps_model=resources/external/dep_embeddings/deps_words_300
+brownclusters_file=/resources/closed_track/brown_clusters/brown-rcv1.clean.tokenized-CoNLL03.txt-c320-freq1.txt
+
 log_file=${run_name}_$(date +%y-%m-%d-%H-%M).log
-. sup_parser_v6_hierarchy_cnn_cross_run_partial.sh   > ${log_file}
+. sup_parser_v2_hierarchy_optimized_run_partial.sh  # > ${log_file}

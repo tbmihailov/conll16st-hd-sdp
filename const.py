@@ -4,9 +4,11 @@
 class _const:
     class ConstError(TypeError): pass
     def __setattr__(self,name,value):
-        if self.__dict__.has_key(name):
-            raise self.ConstError, "Can't rebind const(%s)"%name
-        self.__dict__[name]=value
+        #if self.__dict__.has_key(name):
+            # we do not to raise exception as this constant can be binded in a module that can be loaded from different modules!
+            # raise self.ConstError, "Can't rebind const(%s)"%name
+        if not self.__dict__.has_key(name):
+            self.__dict__[name]=value
 import sys
 sys.modules[__name__]=_const()
 

@@ -67,6 +67,28 @@ const.FIELD_REL_TYPE = 'Type'
 class DiscourseSenseClassification_FeatureExtraction(object):
     """Discourse relation sense classifier feature extration
     """
+    CONNECTIVES_FREELY_OMISSIBLE= [
+        'accordingly',
+        'as a result',
+        'because',
+        'by comparison',
+        'by contrast',
+        'consequently',
+        'for example',
+        'for instance',
+        'furthermore',
+        'in fact',
+        'in other words',
+        'in particular',
+        'in short',
+        'indeed',
+        'previously',
+        'rather',
+        'so',
+        'specifically',
+        'therefore'
+    ]
+
     CONNECTIVES = ['if',
      'rather',
      'in contrast',

@@ -276,7 +276,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
             param_c = 0.1
 
             if tune:
-                param_grid = {'C': [0.001, 0.01, 0.1, 0.5, 1, 2, 3, 4, 10, 100]}
+                param_grid = {'C': [0.001, 0.01, 0.1,0.2,0.3, 0.5, 1, 2, 3, 4, 10]}
                 # clf = GridSearchCV(LogisticRegression(penalty='l2'), param_grid)
                 classifier_tune = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=1.0, fit_intercept=True,
                                                         intercept_scaling=1, class_weight=None, random_state=None,
@@ -295,7 +295,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
 
             print "class_weight:%s"%class_weights
             classifier_current = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=param_c, fit_intercept=True,
-                                                    intercept_scaling=1, class_weight=class_weights, random_state=None,
+                                                    intercept_scaling=1, random_state=None,
                                                     solver='liblinear',
                                                     max_iter=100, multi_class='ovr', verbose=0, warm_start=False, n_jobs=8)
 
