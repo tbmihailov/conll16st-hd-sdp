@@ -656,7 +656,7 @@ class DiscourseSenseClassification_FeatureExtraction(object):
 
     @staticmethod
     def extract_features_as_vector_from_single_record_v2_optimized(relation_dict, parse, word2vec_model, word2vec_index2word_set,
-                                                         deps_model, deps_vocabulary, use_connective_sim=True):
+                                                         deps_model, deps_vocabulary, use_connective_sim=True, return_sparse_feats = False):
         features = []
         sparse_feats_dict = {}
 
@@ -789,12 +789,17 @@ class DiscourseSenseClassification_FeatureExtraction(object):
             if math.isnan(features[i]):
                 features[i] = 0.00
 
-        return features  # , sparse_feats_dict
+        if return_sparse_feats:
+            return features, sparse_feats_dict
+        else:
+            return features
+
 
     @staticmethod
     def extract_features_as_vector_from_single_record(relation_dict, parse, word2vec_model, word2vec_index2word_set,
                                                       connective_embedd_list=None,
-                                                      include_connective_features=True):
+                                                      include_connective_features=True,
+                                                      return_sparse_feats=False):
         features = []
         sparse_feats_dict = {}
 
@@ -807,8 +812,8 @@ class DiscourseSenseClassification_FeatureExtraction(object):
         has_connective = 1 if len(connective_tokenlist) > 0 else 0
         features.append(has_connective)
         feat_key = "has_connective"
-        if has_connective == 1:
-            CommonUtilities.increment_feat_val(sparse_feats_dict, feat_key, has_connective)
+        #if has_connective == 1:
+        CommonUtilities.increment_feat_val(sparse_feats_dict, feat_key, has_connective)
 
         # print 'relation_dict:'
         # print relation_dict['Arg1']['TokenList']
@@ -926,7 +931,15 @@ class DiscourseSenseClassification_FeatureExtraction(object):
             if math.isnan(features[i]):
                 features[i] = 0.00
 
-        return features  # , sparse_feats_dict
+        # Set None to zero
+        for k in sparse_feats_dict.iterkeys():
+            if math.isnan(sparse_feats_dict[k]):
+                sparse_feats_dict[k] = 0.00
+
+        if return_sparse_feats:
+            return features, sparse_feats_dict
+        else:
+            return features
 
 
 
