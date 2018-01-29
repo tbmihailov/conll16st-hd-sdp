@@ -603,6 +603,10 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
             sense_original = class_mapping_id_to_origtext[sense]
             relation_dict['Sense'] = [sense_original]
 
+            relation_dict['Arg1']['TokenList_full'] = relation_dict['Arg1']['TokenList']
+            relation_dict['Arg2']['TokenList_full'] = relation_dict['Arg2']['TokenList']
+            relation_dict['Connective']['TokenList_full'] = relation_dict['Connective']['TokenList']
+
             # set output data
             relation_dict['Arg1']['TokenList'] = \
                 [x[2] for x in relation_dict['Arg1']['TokenList']]
@@ -610,6 +614,8 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
                 [x[2] for x in relation_dict['Arg2']['TokenList']]
             relation_dict['Connective']['TokenList'] = \
                 [x[2] for x in relation_dict['Connective']['TokenList']]
+
+
             output.write(json.dumps(relation_dict) + '\n')
 
             if (i + 1) % 1000 == 0:
@@ -766,7 +772,7 @@ if __name__ == '__main__':
                                                           input_params=None, input_features=None, \
                                                           class_mapping=class_mapping)
 
-    use_connectives_sim = True
+    use_connectives_sim = False
 
     model_file_basename = '%s/%s_model_' % (input_run, run_name)
     scale_file_basename = '%s/%s_scalerange_' % (input_run, run_name)

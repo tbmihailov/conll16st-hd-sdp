@@ -1,8 +1,8 @@
+pandas==0.16.0
 numpy==1.9.2
 scipy
-scikit-learn
+scikit-learn==0.18
 nltk
-pandas==0.16.0
 beautifulsoup4
-gensim
-https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.8.0-cp27-none-linux_x86_64.whl
+gensim==0.12.1
+#https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.8.0-cp27-none-linux_x86_64.whl
