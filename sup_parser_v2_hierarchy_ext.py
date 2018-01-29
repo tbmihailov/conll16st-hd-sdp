@@ -444,8 +444,9 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
                                                      )
 
     def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features,
-                       load_scale_file_basename, use_connectives_sim=False, dataset_name='test'):
-        output_dir = self.output_dir
+                       load_scale_file_basename, use_connectives_sim=False, dataset_name='test', output_dir=None):
+        if output_dir is None:
+            output_dir = self.output_dir
 
         class_mapping = self.class_mapping
         class_mapping_id_to_origtext = dict([(value, key) for key, value in class_mapping.iteritems()])
