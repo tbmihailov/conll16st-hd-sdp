@@ -80,8 +80,8 @@ for ((i=0;i<files_cnt;i++)); do
     input_dataset_test=${input_dir}
     input_dataset_test_short_name=${dataset_names_short[${i}]}
 
-    script_name=raw_text_to_json_run.py
-    run_name=raw_text_to_json_run_${i}
+#    script_name=raw_text_to_json_run.py
+#    run_name=raw_text_to_json_run_${i}
     log_file=${input_dir}_dr_$(date +%y-%m-%d-%H-%M-%S).log
     . ~/tools/notify/script_started.sh
 
