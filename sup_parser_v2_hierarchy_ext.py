@@ -544,7 +544,7 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
         logging.info('NON-Explicit features list loaded from %s' % load_features_file_classifier_current)
 
         # Process the relations
-        export_data_to_libsvm = True
+        export_data_to_libsvm = False
         extract_sparse_features = export_data_to_libsvm
 
         data_x_exp_sparse = []
