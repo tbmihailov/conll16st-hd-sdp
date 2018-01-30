@@ -69,7 +69,7 @@ hMDS_V
 
 coreNlpPath="/home/mitarb/mihaylov/research/libs/corenlp/stanford-corenlp-full-2015-12-09/*;"
 
-files_cnt=7
+files_cnt=1
 for ((i=0;i<files_cnt;i++)); do
     echo "---------------"
     input_dir=${input_dirs[${i}]}
