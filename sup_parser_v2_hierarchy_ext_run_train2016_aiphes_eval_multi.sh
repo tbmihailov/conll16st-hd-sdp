@@ -86,7 +86,7 @@ for ((i=0;i<files_cnt;i++)); do
     . ~/tools/notify/script_started.sh
 
     log_file=${run_name}_$(date +%y-%m-%d-%H-%M).log
-    . sup_parser_v2_hierarchy_ext_run_partial_aiphes.sh > ${log_file}
+    . sup_parser_v2_hierarchy_ext_run_partial_aiphes.sh # > ${log_file}
 
     . ~/tools/notify/script_stopped.sh
 
