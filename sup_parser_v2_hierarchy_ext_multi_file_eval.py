@@ -25,6 +25,9 @@ from datetime import datetime
 
 import logging  # word2vec logging
 
+from os.path import isdir, join
+
+from os import listdir
 from sklearn import preprocessing
 from sklearn.grid_search import GridSearchCV
 from sklearn.linear_model import LogisticRegression
@@ -90,6 +93,11 @@ logger.addHandler(consoleHandler)
 # python sup_parser_v1.py en [dataset_folder_here] [model_folder_ghere] [output_dir_here] -run_name:sup_v1 -cmd:train -word2vec_model:""
 #
 #
+
+def is_conll2016st_dataset(input_dataset):
+    return os.path.isfile(os.path.join(input_dataset, "parses.json")) and os.path.isfile(os.path.join(input_dataset, "relations-no-senses.json"))
+
+
 
 if __name__ == '__main__':
     language = sys.argv[1]
@@ -218,11 +226,21 @@ if __name__ == '__main__':
                               use_connectives_sim=use_connectives_sim,
                               dataset_name=dataset_name)
     elif cmd == 'test':
-        logging.info('-----------TEST----------------------------------')
-        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model,
-                              load_model_file_basename=model_file_basename,
-                              scale_features=scale_features, load_scale_file_basename=scale_file_basename,
-                              use_connectives_sim=use_connectives_sim,
-                              dataset_name=dataset_name)
+        dataset_list = []
+        if is_conll2016st_dataset(input_dataset):
+            dataset_list.append((input_dataset, output_dir))
+        else:
+            dataset_list = [(join(input_dataset, f), join(input_dataset, f)) for f in listdir(input_dataset) if isdir(join(input_dataset, f)) and is_conll2016st_dataset(join(input_dataset, f))]
+
+        for in_dataset, out_dir in dataset_list:
+            logging.info('-----------TEST----------------------------------')
+            logging.info('Input dataset:%s' % in_dataset)
+            parser.classify_sense(input_dataset=in_dataset, word2vec_model=model,
+                                  load_model_file_basename=model_file_basename,
+                                  scale_features=scale_features, load_scale_file_basename=scale_file_basename,
+                                  use_connectives_sim=use_connectives_sim,
+                                  dataset_name=dataset_name,
+                                  output_dir=out_dir)
+
     else:
         logging.error("command unknown: %s. Either -cmd:train or -cmd:test expected" % (cmd))

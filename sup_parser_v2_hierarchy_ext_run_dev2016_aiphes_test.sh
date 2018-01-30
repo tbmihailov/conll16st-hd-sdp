@@ -13,7 +13,7 @@ input_dataset_test_short_name=aiphes_test
 
 run_type=svm_base
 
-run_name=${run_type}_sup_v2_hier_ext_devaiphes
+run_name=${run_type}_sup_v2_hier_ext_tr16dev-aiphes
 if [ -n "$1" ]
 then
   run_name=$1
@@ -39,5 +39,5 @@ word2vec_load_bin=False
 # word2vec_load_bin=True # for google pretrained embeddings
 
 log_file=${run_name}_$(date +%y-%m-%d-%H-%M).log
-. sup_parser_v2_hierarchy_ext_run_partial_notrain.sh  # > ${log_file}
-#. sup_parser_v2_hierarchy_ext_run_partial.sh  # > ${log_file}
+#. sup_parser_v2_hierarchy_ext_run_partial_notrain.sh  # > ${log_file}
+. sup_parser_v2_hierarchy_ext_run_partial.sh  # > ${log_file}
