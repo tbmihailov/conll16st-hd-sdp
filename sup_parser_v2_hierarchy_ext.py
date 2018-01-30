@@ -563,7 +563,8 @@ class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
             is_explicit = (relation_dict['Type'] == 'Explicit')
 
             # print relation_dict
-            curr_features_vec, curr_features_sparse = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
+            #curr_features_vec, curr_features_sparse = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
+            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
                 relation_dict=relation_dict, \
                 parse=parse, \
                 word2vec_model=word2vec_model, \
