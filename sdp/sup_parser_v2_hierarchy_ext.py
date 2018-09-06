@@ -29,11 +29,10 @@ from sklearn import preprocessing
 from sklearn.grid_search import GridSearchCV
 from sklearn.linear_model import LogisticRegression
 
-import validator
+from scorer import validator
 from sdp.utils.Common_Utilities import CommonUtilities
 
 import gensim
-from gensim import corpora, models, similarities  # used for word2vec
 from gensim.models.word2vec import Word2Vec  # used for word2vec
 from gensim.models.doc2vec import Doc2Vec  # used for doc2vec
 
@@ -41,17 +40,13 @@ import time  # used for performance measuring
 import math
 
 from scipy import spatial  # used for similarity calculation
-from gensim.models.doc2vec import LabeledSentence
-from gensim.models import Phrases
 
 from gensim import corpora  # for dictionary
 from gensim.models import LdaModel
 
 # from sklearn.svm import libsvm
-from sklearn.svm import SVC
 
 sys.path.append('~/semanticz')
-from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
 import os
 import pickle

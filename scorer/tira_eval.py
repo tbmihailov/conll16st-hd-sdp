@@ -6,7 +6,7 @@
 import json
 import sys
 from scorer import evaluate
-from partial_scorer import partial_evaluate
+from scorer.partial_scorer import partial_evaluate
 from validator import validate_relation_list, identify_language
 
 def write_proto_text(key, value, f):

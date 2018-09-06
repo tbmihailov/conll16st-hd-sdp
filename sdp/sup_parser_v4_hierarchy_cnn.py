@@ -27,23 +27,12 @@ import logging  # word2vec logging
 
 from sklearn import preprocessing
 
-import validator
 from sdp.utils.Common_Utilities import CommonUtilities
 
-import gensim
-from gensim import corpora, models, similarities  # used for word2vec
 from gensim.models.word2vec import Word2Vec  # used for word2vec
 from gensim.models.doc2vec import Doc2Vec  # used for doc2vec
 
 import time  # used for performance measuring
-import math
-
-from scipy import spatial  # used for similarity calculation
-from gensim.models.doc2vec import LabeledSentence
-from gensim.models import Phrases
-
-from gensim import corpora  # for dictionary
-from gensim.models import LdaModel
 
 import numpy
 
@@ -51,18 +40,13 @@ import numpy
 from sklearn.svm import SVC
 import copy
 sys.path.append('~/semanticz')
-from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
 import pickle
 
-import const  # Constants support
-from sdp.features import DiscourseSenseClassification_FeatureExtraction_v1
+from scorer import const, validator
 from sdp.features.DiscourseSenseClassification_FeatureExtraction_v1 import DiscourseSenseClassification_FeatureExtraction
 
-
-from sdp.models.cnn_class_micro_static_extended import TextCNN_Ext
-
-from VocabEmbedding_Utilities import VocabEmbeddingUtilities
+from sdp.utils.VocabEmbedding_Utilities import VocabEmbeddingUtilities
 
 const.padding_word = "<PAD/>"
 
@@ -223,7 +207,7 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
 
         for i in range(0, len(train_parsed_raw)):
             if train_parsed_raw[i][class_field] in class_mapping_curr:  # and train_y_relation_types[i] == relation_type:
-                curr_train_tokens = train_parsed_raw[i][const.FIELD_ARG1]+train_parsed_raw[i][const.FIELD_ARG2]
+                curr_train_tokens = train_parsed_raw[i][const.FIELD_ARG1] + train_parsed_raw[i][const.FIELD_ARG2]
                 curr_train_tokens = pad_or_trim_sentence([x for x in curr_train_tokens if x in vocabulary], max_relation_length, const.padding_word)
                 curr_train_tokens_idx = [vocabulary[x] for x in curr_train_tokens]
                 train_x_curr.append(curr_train_tokens_idx)  # Do the Arg1, Arg2 concatenation/selection here
@@ -302,7 +286,7 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         # average_accuracy = cnn.valid_accuracy
 
 
-        from text_cnn_train import text_cnn_train_and_save_model
+        from sdp.models.text_cnn_train import text_cnn_train_and_save_model
 
         allow_soft_placement = True
         log_device_placement = False
@@ -490,7 +474,8 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
                 if len(curr_features_implicit[const.FIELD_ARG2]) > max_arg_length:
                     max_arg_length = len(curr_features_implicit[const.FIELD_ARG2])
 
-                rel_len = len(curr_features_implicit[const.FIELD_ARG1]) + len(curr_features_implicit[const.FIELD_ARG1]) + \
+                rel_len = len(curr_features_implicit[const.FIELD_ARG1]) + len(curr_features_implicit[
+                                                                                  const.FIELD_ARG1]) + \
                           len(curr_features_implicit[const.FIELD_CONNECTIVE])
 
                 # determine max relation length
@@ -740,7 +725,7 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
 
         # NON EXPLICIT - EXVALUATION CNN
 
-        from text_cnn_eval import text_cnn_load_model_and_eval
+        from sdp.models.text_cnn_eval import text_cnn_load_model_and_eval
 
         checkpoint_dir = os.path.abspath(os.path.join(load_model_file_classifier_current, "checkpoints"))
         checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
@@ -753,7 +738,8 @@ class DiscourseSenseClassifier_Sup_v4_Hierarchical_CNN(object):
         start = time.time()
 
         for i in range(0, len(curr_features_implicit_list)):
-            curr_train_tokens = curr_features_implicit_list[i][const.FIELD_ARG1] + curr_features_implicit_list[i][const.FIELD_ARG2]
+            curr_train_tokens = curr_features_implicit_list[i][const.FIELD_ARG1] + curr_features_implicit_list[i][
+                const.FIELD_ARG2]
             curr_train_tokens = pad_or_trim_sentence([x for x in curr_train_tokens if x in vocabulary],
                                                      max_relation_length, const.padding_word)
             curr_train_tokens_idx = [vocabulary[x] for x in curr_train_tokens]

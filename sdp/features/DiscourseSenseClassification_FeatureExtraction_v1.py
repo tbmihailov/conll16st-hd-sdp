@@ -17,36 +17,20 @@ Train should take three arguments
 
 """
 
-import codecs
-import json
-import random
 import sys
-from datetime import datetime
 
-from sklearn import preprocessing
-
-import validator
 from sdp.utils.Common_Utilities import CommonUtilities
-
-import gensim
-from gensim.models.word2vec import Word2Vec # used for word2vec
-from gensim.models.doc2vec import Doc2Vec#used for doc2vec
 
 import math
 
 from scipy import spatial # used for similarity calculation
-from gensim.models.doc2vec import LabeledSentence
-
-from gensim import corpora # for dictionary
 
 # from sklearn.svm import libsvm
 
 sys.path.append('~/semanticz')
 from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
-import pickle
-
-import const
+from scorer import const
 
 # Constants
 const.FIELD_ARG1 = 'Arg1'

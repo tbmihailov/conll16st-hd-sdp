@@ -19,48 +19,33 @@ Train should take three arguments
 
 import codecs
 import json
-import random
 import sys
 from datetime import datetime
 
 import logging  # word2vec logging
 
 from sklearn import preprocessing
+from sklearn.grid_search import GridSearchCV
+from sklearn.linear_model import LogisticRegression
 
-import validator
+from scorer import validator
 from sdp.utils.Common_Utilities import CommonUtilities
 
-import gensim
-from gensim import corpora, models, similarities  # used for word2vec
 from gensim.models.word2vec import Word2Vec  # used for word2vec
 from gensim.models.doc2vec import Doc2Vec  # used for doc2vec
 
 import time  # used for performance measuring
-import math
-
-from scipy import spatial  # used for similarity calculation
-from gensim.models.doc2vec import LabeledSentence
-from gensim.models import Phrases
-
-from gensim import corpora  # for dictionary
-from gensim.models import LdaModel
 
 # from sklearn.svm import libsvm
-from sklearn.svm import SVC
-
-from VocabEmbedding_Utilities import VocabEmbeddingUtilities
-from infer import Embeddings
-from sklearn.linear_model import LogisticRegression
 
 sys.path.append('~/semanticz')
-from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
 import pickle
 
 from sdp.features.DiscourseSenseClassification_FeatureExtraction_v1 import DiscourseSenseClassification_FeatureExtraction
 
 
-class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
+class DiscourseSenseClassifier_Sup_v2_Hierarchical(object):
     """Sample discourse relation sense classifier
     """
 
@@ -77,8 +62,8 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
 
         pass
 
-    def train_sense(self, input_dataset, word2vec_model, save_model_file_basename, scale_features, deps_model,
-                    save_scale_file_basename, hierachical_classifier=False):
+    def train_sense(self, input_dataset, word2vec_model, save_model_file_basename, scale_features,
+                    save_scale_file_basename, use_connectives_sim=False):
         class_mapping_flat = self.class_mapping
 
         # Classes:
@@ -143,6 +128,16 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
         word2vec_index2word_set = set(word2vec_model.index2word)
         # model_dir = self.input_run
 
+        word2vec_num_features = len(word2vec_model.syn0[0])
+
+        logging.info('Using arg1+arg2 to PDTB connective_embeddings similarity:%s' % use_connectives_sim)
+        connectives_embeddings_list = None
+        if use_connectives_sim:
+            connectives_embeddings_list = DiscourseSenseClassification_FeatureExtraction.get_connectives_emeddings(
+                DiscourseSenseClassification_FeatureExtraction.CONNECTIVES, word2vec_model, word2vec_index2word_set,
+                word2vec_num_features)
+            logging.info('Extracted connective embeddings!')
+
         relation_file = '%s/relations.json' % input_dataset  # with senses to train
         relation_dicts = [json.loads(x) for x in open(relation_file)]
 
@@ -158,22 +153,23 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
 
         logging.info('=====EXTRACTING FEATURES======')
 
-        logging.info('Extracting features from %s items..' % len(train_x))
+        logging.info('Extracting features from %s items..' % len(relation_dicts))
         for i, relation_dict in enumerate(relation_dicts):
 
-            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record_v1( \
+            is_explicit = (relation_dict['Type'] == 'Explicit')
+            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
                 relation_dict=relation_dict, \
                 parse=parse, \
                 word2vec_model=word2vec_model, \
-                word2vec_index2word_set=word2vec_index2word_set, \
-                deps_model=deps_model, \
-                deps_vocabulary=set(deps_model._vocab),
-            )
+                word2vec_index2word_set=word2vec_index2word_set,
+                connective_embedd_list=connectives_embeddings_list if not is_explicit else None,
+                include_connective_features=is_explicit)
 
             if (i + 1) % 1000 == 0:
-                print '%s of %s' % (i, len(relation_dicts))
+                #print '%s of %s' % (i, len(relation_dicts))
                 logging.info('%s of %s' % (i, len(relation_dicts)))
-                print '%s features:%s' % (i, curr_features_vec[:10])
+
+                logging.info('%s features(%s):%s' % (i, len(curr_features_vec),curr_features_vec))
 
             curr_senses = relation_dict['Sense']  # list of senses example: u'Sense': [u'Contingency.Cause.Reason']
             # logging.debug('%s - %s'%(i, curr_senses))
@@ -194,24 +190,25 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
                     train_y_relation_types.append(0)
 
 
-        #SCALE FEATURES
-        logging.info('=====SCALING======')
-        scaler = preprocessing.MinMaxScaler(self.scale_range)
-        if scale_features:
-            logging.info('Scaling %s items with %s features..' % (len(train_x), len(train_x[0])))
-            start = time.time()
-            train_x = scaler.fit_transform(train_x)
-            end = time.time()
-            logging.info("Done in %s s" % (end - start))
-            pickle.dump(scaler, open(save_scale_file_basename, 'wb'))
-            logging.info('Scale feats ranges saved to %s' % save_scale_file_basename)
-        else:
-            logging.info("No scaling!")
+        # #SCALE FEATURES
+        # logging.info('=====SCALING======')
+        # scaler = preprocessing.MinMaxScaler(self.scale_range)
+        # if scale_features:
+        #     logging.info('Scaling %s items with %s features..' % (len(train_x), len(train_x[0])))
+        #     start = time.time()
+        #     train_x = scaler.fit_transform(train_x)
+        #     end = time.time()
+        #     logging.info("Done in %s s" % (end - start))
+        #     pickle.dump(scaler, open(save_scale_file_basename, 'wb'))
+        #     logging.info('Scale feats ranges saved to %s' % save_scale_file_basename)
+        # else:
+        #     logging.info("No scaling!")
 
         logging.info('======HIERARCHICAL TRAINING======')
 
-        def filter_items_train_classifier_and_save_model(classifier_name, class_mapping_curr, relation_type, train_x, train_y_txt,
-                                                         train_y_relation_types, save_model_file):
+        def filter_items_train_classifier_and_save_model(classifier_name, class_mapping_curr, relation_type,
+                                                         train_x, train_y_txt, train_y_relation_types,
+                                                         save_model_file, save_scale_file_current, scale_features=False, class_weights=None):
             """
             Filters items by given params, trains the classifier and saves the word2vec_model to a file.
             Args:
@@ -241,19 +238,54 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
             end = time.time()
             logging.info("Done in %s s" % (end - start))
 
+            # logging.info('=====SCALING======')
+            scaler = preprocessing.MinMaxScaler(self.scale_range)
+            if scale_features:
+                logging.info('Scaling %s items with %s features..' % (len(train_x_curr), len(train_x_curr[0])))
+                start = time.time()
+                train_x_curr = scaler.fit_transform(train_x_curr)
+                end = time.time()
+                logging.info("Done in %s s" % (end - start))
+                pickle.dump(scaler, open(save_scale_file_current, 'wb'))
+                logging.info('Scale feats ranges saved to %s' % save_scale_file_current)
+            else:
+                logging.info("No scaling!")
+
             # Training
             # Classifier params
+
             # classifier_current = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
             #                          degree=3, gamma='auto', kernel='rbf',
             #                          max_iter=-1, probability=False, random_state=None, shrinking=True,
             #                          tol=0.001, verbose=False)
 
-            param_c=0.1
+            tune = True
+            param_c = 0.1
+
+            if tune:
+                param_grid = {'C': [0.001, 0.01, 0.1,0.2,0.3, 0.5, 1, 2, 3, 4, 10]}
+                # clf = GridSearchCV(LogisticRegression(penalty='l2'), param_grid)
+                classifier_tune = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=1.0, fit_intercept=True,
+                                                        intercept_scaling=1, class_weight=None, random_state=None,
+                                                        solver='liblinear',
+                                                        max_iter=100, multi_class='ovr', verbose=0, warm_start=False,
+                                                        n_jobs=8)
+                gcv = GridSearchCV(cv=None,
+                             estimator=classifier_tune,
+                             param_grid=param_grid)
+                gcv.fit(train_x_curr, train_y_curr)
+
+                logging.info("Estimated_best_params:%s"%gcv.best_params_)
+                if 'C' in gcv.best_params_:
+                    param_c = gcv.best_params_['C']
+                    logging.info("best C=%s" % param_c)
+
+            print "class_weight:%s"%class_weights
             classifier_current = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=param_c, fit_intercept=True,
-                               intercept_scaling=1, class_weight=None, random_state=None,
-                               solver='liblinear',
-                               max_iter=100, multi_class='ovr', verbose=0, warm_start=False,
-                               n_jobs=8)
+                                                    intercept_scaling=1, random_state=None,
+                                                    solver='liblinear',
+                                                    max_iter=100, multi_class='ovr', verbose=0, warm_start=False, n_jobs=8)
+
             print 'Classifier:\n%s' % classifier_current
 
             start = time.time()
@@ -262,7 +294,7 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
             end = time.time()
             logging.info("Done in %s s" % (end - start))
 
-            # Saving word2vec_model
+            # Saving model
             pickle.dump(classifier_current, open(save_model_file, 'wb'))
             logging.info('Model saved to %s' % save_model_file)
 
@@ -276,14 +308,17 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
         # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
         class_mapping_curr = class_mapping_flat
         save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
+        save_scale_file_classifier_current = '%s_%s_scale.pickle' % (save_scale_file_basename, classifier_name)
 
         filter_items_train_classifier_and_save_model(classifier_name=classifier_name,
                                         class_mapping_curr=class_mapping_curr,
                                         relation_type=relation_type,
                                         train_x = train_x,
                                         train_y_txt=train_y_txt_level2,
-                                                     train_y_relation_types=train_y_relation_types,
-                                        save_model_file=save_model_file_classifier_current)
+                                        train_y_relation_types=train_y_relation_types,
+                                        save_model_file=save_model_file_classifier_current,
+                                        save_scale_file_current=save_scale_file_classifier_current,
+                                        scale_features=scale_features)
 
 
         # Classifier: Non-Explicit, Level 1
@@ -292,6 +327,7 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
         # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
         class_mapping_curr = class_mapping_flat
         save_model_file_classifier_current = '%s_%s.modelfile' % (save_model_file_basename, classifier_name)
+        save_scale_file_classifier_current = '%s_%s_scale.pickle' % (save_scale_file_basename, classifier_name)
 
         filter_items_train_classifier_and_save_model(classifier_name=classifier_name,
                                                      class_mapping_curr=class_mapping_curr,
@@ -299,10 +335,13 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
                                                      train_x=train_x,
                                                      train_y_txt=train_y_txt_level2,
                                                      train_y_relation_types=train_y_relation_types,
-                                                     save_model_file=save_model_file_classifier_current)
+                                                     save_model_file=save_model_file_classifier_current,
+                                                     save_scale_file_current=save_scale_file_classifier_current,
+                                                     scale_features=scale_features,
+                                                     )
 
-    def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features, deps_model,
-                       load_scale_file_basename, hierachical_classifier=False):
+    def classify_sense(self, input_dataset, word2vec_model, load_model_file_basename, scale_features,
+                       load_scale_file_basename, use_connectives_sim=False):
         output_dir = self.output_dir
 
         class_mapping = self.class_mapping
@@ -316,19 +355,27 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
         parse_file = '%s/parses.json' % input_dataset
         parse = json.load(codecs.open(parse_file, encoding='utf8'))
 
-        relation_dicts = [json.loads(x) for x in open(relation_file)]
+        relation_dicts = []
+        file_line = 0
+        for x in open(relation_file):
+
+            try:
+                relation_dicts.append(json.loads(x[x.index('{'):]))
+            except:
+                print "Error reading json file on line %s" % file_line
+                print x
+            file_line = file_line+1
+        #relation_dicts = [json.loads(x) for x in open(relation_file)]
 
         output_file = '%s/output.json' % output_dir
         output = codecs.open(output_file, 'wb', encoding='utf8')
 
-
-        if scale_features:
-            # scaler = preprocessing.MinMaxScaler(self.scale_range)
-            # scaler.transform(feats)
-            scaler = pickle.load(open(load_scale_file_basename, 'rb'))
-            logger.info('Scaling is enabled!')
-        else:
-            logger.info('NO scaling!')
+        logging.info('Using arg1+arg2 to PDTB connective_embeddings similarity:%s' % use_connectives_sim)
+        connectives_embeddings_list = None
+        if use_connectives_sim:
+            connectives_embeddings_list = DiscourseSenseClassification_FeatureExtraction.get_connectives_emeddings(
+                DiscourseSenseClassification_FeatureExtraction.CONNECTIVES, word2vec_model, word2vec_index2word_set,
+                word2vec_num_features)
 
 
         # Classifier: Explicit, Level 1
@@ -336,41 +383,71 @@ class DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(object):
         classifier_name = 'EXP_LEVEL1'
         # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
         class_mapping_curr = self.class_mapping
+
+        #Load scaler
+        load_scale_file_classifier_current = '%s_%s_scale.pickle' % (load_scale_file_basename, classifier_name)
+        if scale_features:
+            # scaler = preprocessing.MinMaxScaler(self.scale_range)
+            # scaler.transform(feats)
+            scaler_exp = pickle.load(open(load_scale_file_classifier_current, 'rb'))
+            logger.info('Scaling is enabled!')
+        else:
+            logger.info('NO scaling!')
+
         load_model_file_classifier_current = '%s_%s.modelfile' % (load_model_file_basename, classifier_name)
         classifier_level1_exp = pickle.load(open(load_model_file_classifier_current, 'rb'))
+        logger.info('%s classifier: %s' % (classifier_name, classifier_level1_exp))
 
         # Classifier: Non-Explicit, Level 1
         relation_type = 1  # 1 Explicit, 0 Non-Explicit, -1 All
         classifier_name = 'NONEXP_LEVEL1'
         # class_mapping_curr = dict([(k, v['ID']) for k, v in class_tree.iteritems()])
         class_mapping_curr = self.class_mapping
+
+        #Load scaler
+        load_scale_file_classifier_current = '%s_%s_scale.pickle' % (load_scale_file_basename, classifier_name)
+        if scale_features:
+            # scaler = preprocessing.MinMaxScaler(self.scale_range)
+            # scaler.transform(feats)
+            scaler_nonexp = pickle.load(open(load_scale_file_classifier_current, 'rb'))
+            logger.info('Scaling is enabled!')
+        else:
+            logger.info('NO scaling!')
+
+        # Load classifier
         load_model_file_classifier_current = '%s_%s.modelfile' % (load_model_file_basename, classifier_name)
         classifier_level1_nonexp = pickle.load(open(load_model_file_classifier_current, 'rb'))
+        logger.info('%s classifier: %s' % (classifier_name, classifier_level1_nonexp))
 
         for i, relation_dict in enumerate(relation_dicts):
-            # print relation_dict
-            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record_v2_optimized( \
-                relation_dict=relation_dict, \
-                parse=parse, \
-                word2vec_model=word2vec_model, \
-                word2vec_index2word_set=word2vec_index2word_set, \
-                deps_model=deps_model, \
-                deps_vocabulary=set(deps_model._vocab),
-            )
 
             if len(relation_dict['Connective']['TokenList']) > 0:
                 relation_dict['Type'] = 'Explicit'
             else:
                 relation_dict['Type'] = 'Implicit'
 
+            is_explicit = (relation_dict['Type'] == 'Explicit')
+
+            # print relation_dict
+            curr_features_vec = DiscourseSenseClassification_FeatureExtraction.extract_features_as_vector_from_single_record( \
+                relation_dict=relation_dict, \
+                parse=parse, \
+                word2vec_model=word2vec_model, \
+                word2vec_index2word_set=word2vec_index2word_set,
+                connective_embedd_list=connectives_embeddings_list if not is_explicit else None,
+                include_connective_features=is_explicit)
+
             # sense = valid_senses[random.randint(0, len(valid_senses) - 1)]
 
-            if scale_features:
-                curr_features_vec = scaler.transform([curr_features_vec])[0]
-
             if relation_dict['Type'] == 'Explicit':
+                if scale_features:
+                    curr_features_vec = scaler_exp.transform([curr_features_vec])[0]
+
                 sense = classifier_level1_exp.predict([curr_features_vec])[0]
             else:
+                if scale_features:
+                    curr_features_vec = scaler_nonexp.transform([curr_features_vec])[0]
+
                 sense = classifier_level1_nonexp.predict([curr_features_vec])[0]
 
             # print 'predicted sense:%s' % sense
@@ -402,9 +479,9 @@ logger.setLevel(logging.DEBUG)
 
 # Enable file logging
 logFileName = '%s/%s-%s.log' % ('logs', 'sup_parser_v1', '{:%Y-%m-%d-%H-%M-%S}'.format(datetime.now()))
-fileHandler = logging.FileHandler(logFileName, 'wb')
-fileHandler.setFormatter(logFormatter)
-logger.addHandler(fileHandler)
+# fileHandler = logging.FileHandler(logFileName, 'wb')
+# fileHandler.setFormatter(logFormatter)
+# logger.addHandler(fileHandler)
 
 # Enable console logging
 consoleHandler = logging.StreamHandler(sys.stdout)
@@ -484,27 +561,6 @@ if __name__ == '__main__':
     brownclusters_file = CommonUtilities.get_param_value("brownclusters_file", sys.argv, brownclusters_file)
     logging.info('brownclusters_file:\n\t%s' % brownclusters_file)
 
-    # dependency embeddings
-    # word2vec word2vec_model file
-    deps_model_file = ""  # "qatarliving\\qatarliving_size400_win10_mincnt10.word2vec.bin"
-    deps_model_file = CommonUtilities.get_param_value("deps_model", sys.argv)
-    logging.info('deps_model_file File:\n\t%s' % deps_model_file)
-
-    deps_vocabulary = None
-    deps_embeddings = None
-    deps_model = None
-    has_deps_embeddings = False
-
-    if deps_model_file != "":
-        has_deps_embeddings = True
-        logging.info("Loading dependency embeddings from %s" % deps_model_file)
-        deps_model = Embeddings.load(deps_model_file+".npy", deps_model_file+".vocab")
-        logging.info("Deps Model loaded!")
-
-        #deps_vocabulary = deps_model._vocab
-        #deps_embeddings = deps_model._vecs
-
-
     # Load Models here
     is_doc2vec_model = False
     # load word2vec word2vec_model
@@ -526,34 +582,40 @@ if __name__ == '__main__':
     # define classes
     class_mapping = dict([(val, idx) for idx, val in enumerate(valid_senses)])
     class_mapping_file = '%s/%s.classlabels' % (output_dir, run_name)
-    CommonUtilities.write_dictionary_to_file(class_mapping, class_mapping_file)
+    # CommonUtilities.write_dictionary_to_file(class_mapping, class_mapping_file)
 
     # RUN PARSER
-    parser = DiscourseSenseClassifier_Sup_v2_Optimized_Hierarchical(valid_senses=valid_senses, input_run=input_run, input_dataset=input_dataset, \
+    parser = DiscourseSenseClassifier_Sup_v2_Hierarchical(valid_senses=valid_senses, input_run=input_run, input_dataset=input_dataset, \
                                     output_dir=output_dir, \
                                     input_params=None, input_features=None, \
                                     class_mapping=class_mapping)
+
+    use_connectives_sim = True
 
     model_file_basename = '%s/%s_model_' % (input_run, run_name)
     scale_file_basename = '%s/%s_scalerange_' % (input_run, run_name)
     if cmd == 'train':
         logging.info('-----------TRAIN---------------------------------')
-        parser.train_sense(input_dataset=input_dataset, word2vec_model=model, deps_model=deps_model,
+        parser.train_sense(input_dataset=input_dataset, word2vec_model=model,
                            save_model_file_basename=model_file_basename,
-                           scale_features=scale_features, save_scale_file_basename=scale_file_basename)
+                           scale_features=scale_features, save_scale_file_basename=scale_file_basename,
+                           use_connectives_sim=use_connectives_sim)
     elif cmd == 'train-test':
         logging.debug(class_mapping)
-        parser.train_sense(input_dataset=input_dataset, word2vec_model=model, deps_model=deps_model,
+        parser.train_sense(input_dataset=input_dataset, word2vec_model=model,
                            save_model_file_basename=model_file_basename,
-                           scale_features=scale_features, save_scale_file_basename=scale_file_basename)
+                           scale_features=scale_features, save_scale_file_basename=scale_file_basename,
+                           use_connectives_sim=use_connectives_sim)
         logging.info('-------------------------------------------------------------')
-        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, deps_model=deps_model,
+        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model,
                               load_model_file_basename=model_file_basename,
-                              scale_features=scale_features, load_scale_file_basename=scale_file_basename)
+                              scale_features=scale_features, load_scale_file_basename=scale_file_basename,
+                           use_connectives_sim=use_connectives_sim)
     elif cmd == 'test':
         logging.info('-----------TEST----------------------------------')
-        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model, deps_model=deps_model,
+        parser.classify_sense(input_dataset=input_dataset, word2vec_model=model,
                               load_model_file_basename=model_file_basename,
-                              scale_features=scale_features, load_scale_file_basename=scale_file_basename)
+                              scale_features=scale_features, load_scale_file_basename=scale_file_basename,
+                           use_connectives_sim=use_connectives_sim)
     else:
         logging.error("command unknown: %s. Either -cmd:train or -cmd:test expected" % (cmd))

@@ -7,9 +7,8 @@
 import json
 import sys
 from scorer import evaluate
-from partial_scorer import partial_evaluate
 from validator import validate_relation_list, identify_language
-from tira_eval import write_proto_text, write_results
+from scorer.tira_eval import write_results
 
 def use_gold_standard_types(sorted_gold_relations, sorted_predicted_relations):
     for gr, pr in zip(sorted_gold_relations, sorted_predicted_relations):

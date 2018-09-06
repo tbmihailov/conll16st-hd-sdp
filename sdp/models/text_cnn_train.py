@@ -6,8 +6,8 @@ import os
 import time
 import datetime
 from sdp.utils import data_helpers
-from text_cnn import TextCNNModel
-from text_cnn_cross import TextCNNModel_Cross, TextCNNModel_Cross_Conv
+from sdp.models.text_cnn import TextCNNModel
+from sdp.models.text_cnn_cross import TextCNNModel_Cross, TextCNNModel_Cross_Conv
 
 
 def text_cnn_train_and_save_model(x_train, y_train,

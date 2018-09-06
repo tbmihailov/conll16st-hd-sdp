@@ -6,8 +6,8 @@
 import argparse
 import json
 
-from confusion_matrix import ConfusionMatrix, Alphabet
-from conn_head_mapper import ConnHeadMapper
+from scorer.confusion_matrix import ConfusionMatrix, Alphabet
+from scorer.conn_head_mapper import ConnHeadMapper
 import validator
 
 CONN_HEAD_MAPPER = ConnHeadMapper()

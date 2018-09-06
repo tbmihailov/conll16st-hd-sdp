@@ -8,11 +8,10 @@ import argparse
 import json
 
 import validator
-import aligner
-import scorer
+from scorer import aligner
 
-from confusion_matrix import ConfusionMatrix, Alphabet
-from conn_head_mapper import ConnHeadMapper
+from scorer.confusion_matrix import ConfusionMatrix, Alphabet
+
 
 def partial_evaluate(gold_list, predicted_list, partial_match_cutoff):
     """Evaluate the parse output with partial matching for arguments

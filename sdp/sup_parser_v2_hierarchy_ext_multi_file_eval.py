@@ -17,8 +17,6 @@ Train should take three arguments
 
 """
 
-import codecs
-import random
 import sys
 from datetime import datetime
 
@@ -28,27 +26,19 @@ from os.path import isdir, join
 
 from os import listdir
 
-import validator
+from scorer import validator
 from sdp.utils.Common_Utilities import CommonUtilities
 
 from gensim.models.word2vec import Word2Vec  # used for word2vec
 from gensim.models.doc2vec import Doc2Vec  # used for doc2vec
-
-import time  # used for performance measuring
-
-from gensim.models.doc2vec import LabeledSentence
-
-from gensim.models import LdaModel
 
 # from sklearn.svm import libsvm
 
 from sup_parser_v2_hierarchy_ext import DiscourseSenseClassifier_Sup_v2_Hierarchical
 
 sys.path.append('~/semanticz')
-from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
 import os
-from sdp.utils.LibSvm_Utilities import LibSvm_Utilities
 
 
 def update_feat_diction_with_features_for_single_item(feat_diction, max_feat_idx, data_sparse_features):
