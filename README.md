@@ -1,4 +1,20 @@
-#Repo for CoNLL 2016 Shared Task participation
+Repo for CoNLL 2016 Shared Task on Shallow Discourse Parsing
+---------------------------------------------
+Repository for the CoNLL 2016 shared task of Shallow Discourse Parsing (http://www.cs.brandeis.edu/~clp/conll16st/) 
+
+Contains code used for the paper: [Discourse Relation Sense Classification Using Cross-argument Semantic Similarity Based on Word Embeddings](http://www.aclweb.org/anthology/K16-2014)
+```
+@inproceedings{mihaylovfrank:2016a,
+  author = {Todor Mihaylov and Anette Frank},
+  title = {{Discourse Relation Sense Classification Using Cross-argument Semantic Similarity Based on Word Embeddings}},
+  year = {2016},
+  publisher = {Association for Computational Linguistics},
+  booktitle = {Proceedings of the Twentieth Conference on Computational Natural Language Learning - Shared Task},
+  pages = {100--107},
+  address = {Berlin, Germany},
+  url = {https://aclweb.org/anthology/K/K16/K16-2014.pdf}
+}
+```
 
 CoNLL 2016 Shared Task - how to from the official documentation
 ---------------------------------------------------------------
