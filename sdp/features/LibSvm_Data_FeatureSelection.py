@@ -7,8 +7,8 @@ import sys
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import MinMaxScaler
 
-from LibSvm_Utilities import LibSvm_Utilities
-from Common_Utilities import CommonUtilities
+from sdp.utils.LibSvm_Utilities import LibSvm_Utilities
+from sdp.utils.Common_Utilities import CommonUtilities
 
 #SAMPLE USAGE
 # set prefix=svm_base_sup_v2_hier_ext_tr16dev

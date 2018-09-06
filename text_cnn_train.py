@@ -5,7 +5,7 @@ import numpy as np
 import os
 import time
 import datetime
-import data_helpers
+from sdp.utils import data_helpers
 from text_cnn import TextCNNModel
 from text_cnn_cross import TextCNNModel_Cross, TextCNNModel_Cross_Conv
 

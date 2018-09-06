@@ -1,7 +1,7 @@
 import sys
 from pandas import json
 import codecs
-from Common_Utilities import CommonUtilities
+from sdp.utils.Common_Utilities import CommonUtilities
 
 
 class Conll2016DataUtilities(object):

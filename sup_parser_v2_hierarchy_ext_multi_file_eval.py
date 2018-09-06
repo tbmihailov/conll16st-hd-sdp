@@ -18,7 +18,6 @@ Train should take three arguments
 """
 
 import codecs
-import json
 import random
 import sys
 from datetime import datetime
@@ -28,30 +27,20 @@ import logging  # word2vec logging
 from os.path import isdir, join
 
 from os import listdir
-from sklearn import preprocessing
-from sklearn.grid_search import GridSearchCV
-from sklearn.linear_model import LogisticRegression
 
 import validator
-from Common_Utilities import CommonUtilities
+from sdp.utils.Common_Utilities import CommonUtilities
 
-import gensim
-from gensim import corpora, models, similarities  # used for word2vec
 from gensim.models.word2vec import Word2Vec  # used for word2vec
 from gensim.models.doc2vec import Doc2Vec  # used for doc2vec
 
 import time  # used for performance measuring
-import math
 
-from scipy import spatial  # used for similarity calculation
 from gensim.models.doc2vec import LabeledSentence
-from gensim.models import Phrases
 
-from gensim import corpora  # for dictionary
 from gensim.models import LdaModel
 
 # from sklearn.svm import libsvm
-from sklearn.svm import SVC
 
 from sup_parser_v2_hierarchy_ext import DiscourseSenseClassifier_Sup_v2_Hierarchical
 
@@ -59,9 +48,7 @@ sys.path.append('~/semanticz')
 from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
 import os
-import pickle
-from DiscourseSenseClassification_FeatureExtraction_v1 import DiscourseSenseClassification_FeatureExtraction
-from LibSvm_Utilities import LibSvm_Utilities
+from sdp.utils.LibSvm_Utilities import LibSvm_Utilities
 
 
 def update_feat_diction_with_features_for_single_item(feat_diction, max_feat_idx, data_sparse_features):

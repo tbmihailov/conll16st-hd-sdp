@@ -28,22 +28,14 @@ import logging  # word2vec logging
 from sklearn import preprocessing
 
 import validator
-from Common_Utilities import CommonUtilities
+from sdp.utils.Common_Utilities import CommonUtilities
 
-import gensim
-from gensim import corpora, models, similarities  # used for word2vec
 from gensim.models.word2vec import Word2Vec  # used for word2vec
 from gensim.models.doc2vec import Doc2Vec  # used for doc2vec
 
 import time  # used for performance measuring
-import math
 
-from scipy import spatial  # used for similarity calculation
-from gensim.models.doc2vec import LabeledSentence
 from gensim.models import Phrases
-
-from gensim import corpora  # for dictionary
-from gensim.models import LdaModel
 
 import numpy
 
@@ -51,17 +43,16 @@ import numpy
 from sklearn.svm import SVC
 import copy
 sys.path.append('~/semanticz')
-from Word2Vec_AverageVectorsUtilities import AverageVectorsUtilities
 
 import pickle
 
 import const  # Constants support
-import DiscourseSenseClassification_FeatureExtraction_v1
-from DiscourseSenseClassification_FeatureExtraction_v1 import DiscourseSenseClassification_FeatureExtraction
+from sdp.features import DiscourseSenseClassification_FeatureExtraction_v1
+from sdp.features.DiscourseSenseClassification_FeatureExtraction_v1 import DiscourseSenseClassification_FeatureExtraction
 
 
 
-from cnn_class_micro_static import TextCNN
+from sdp.models.cnn_class_micro_static import TextCNN
 
 from VocabEmbedding_Utilities import VocabEmbeddingUtilities
 

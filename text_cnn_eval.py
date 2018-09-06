@@ -2,11 +2,7 @@
 
 import tensorflow as tf
 import numpy as np
-import os
-import time
-import datetime
-import data_helpers
-from text_cnn import TextCNNModel
+from sdp.utils import data_helpers
 
 
 def text_cnn_load_model_and_eval(x_test,

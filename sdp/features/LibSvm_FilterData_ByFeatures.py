@@ -3,8 +3,8 @@ import pandas as pd
 import operator
 import re
 import sys
-from LibSvm_Utilities import LibSvm_Utilities
-from Common_Utilities import CommonUtilities
+from sdp.utils.LibSvm_Utilities import LibSvm_Utilities
+from sdp.utils.Common_Utilities import CommonUtilities
 
 #SAMPLE USAGE
 #set files_prefix=E:\semeval2016-task3-caq\data\semeval2016-task3-cqa-ql-traindev-v3.2\v3.2\train\SemEval2016-Task3-CQA-QL-train-part1-subtaskA.xml_tr1dev_veconly
