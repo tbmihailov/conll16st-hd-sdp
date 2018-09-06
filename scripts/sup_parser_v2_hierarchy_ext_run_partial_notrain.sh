@@ -33,9 +33,9 @@ python sdp/sup_parser_v2_hierarchy_ext_multi_file_eval.py en ${input_dataset_tes
 
 
 # validate output
-# python validator.py en ${output_dir}/output.json
+# python scorer/validator.py en ${output_dir}/output.json
 
 #score
-# python scorer.py ${input_dataset_test}/relations.json ${output_dir}/output.json
+# python scorer/scorer/scorer.py ${input_dataset_test}/relations.json ${output_dir}/output.json
 
-#python tira_sup_eval.py ${input_dataset_test} ${output_dir} ${output_dir}
+#python scorer/scorer/tira_sup_eval.py ${input_dataset_test} ${output_dir} ${output_dir}

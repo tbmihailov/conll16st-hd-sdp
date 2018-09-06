@@ -8,4 +8,4 @@ input_libsvm_file=${prefix}_scalerange__NONEXP_LEVEL1_scale_dev2016.libsvm
 features_filter_file=
 features_dict_file=${prefix}_model__NONEXP_LEVEL1.features
 class_mappings_file=${prefix}_model_.classmapping
-python LibSvm_Data_FeatureSelection.py -input_libsvm_file:${input_libsvm_file} -features_dict_file:${features_dict_file} -features_filter_file:${features_filter_file} -class_mappings_file:${class_mappings_file}
+python sdp/features/LibSvm_Data_FeatureSelection.py -input_libsvm_file:${input_libsvm_file} -features_dict_file:${features_dict_file} -features_filter_file:${features_filter_file} -class_mappings_file:${class_mappings_file}

@@ -35,4 +35,4 @@ python sdp/sup_parser_v2_hierarchy_optimized.py en ${input_dataset_test}  ${mode
 #score
 # python scorer.py ${input_dataset_test}/relations.json ${output_dir}/output.json
 
-python tira_sup_eval.py ${input_dataset_test} ${output_dir} ${output_dir}
+python scorer/tira_sup_eval.py ${input_dataset_test} ${output_dir} ${output_dir}

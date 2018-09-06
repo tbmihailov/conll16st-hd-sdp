@@ -32,4 +32,4 @@ python sdp/sup_parser_v4_hierarchy_cnn.py en ${input_dataset_test}  ${model_dir}
 #score
 # python scorer.py ${input_dataset_test}/relations.json ${output_dir}/output.json
 
-python tira_sup_eval.py ${input_dataset_test} ${output_dir} ${output_dir}
+python scorer/tira_sup_eval.py ${input_dataset_test} ${output_dir} ${output_dir}
