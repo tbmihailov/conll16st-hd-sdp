@@ -28,7 +28,7 @@ model_dir=models/${run_name}
 scale_features=True
 
 # resources
- word2vec_model=resources/external/w2v_embeddings/qatarliving_qc_size20_win10_mincnt5_rpl_skip1_phrFalse_2016_02_23.word2vec.bin
+word2vec_model=resources/external/w2v_embeddings/qatarliving_qc_size20_win10_mincnt5_rpl_skip1_phrFalse_2016_02_23.word2vec.bin
 #word2vec_model=resources/closed_track/word2vec_google/GoogleNews-vectors-negative300.bin
 
  word2vec_load_bin=False

@@ -20,8 +20,8 @@ echo '==============RANDOM TEST================='
 echo '=========================================='
 
 mode=test
-echo python sup_parser_baseline_random.py en ${input_dataset_test}  ${input_dataset_test} ${output_dir}
-python sup_parser_baseline_random.py en ${input_dataset_test}  ${input_dataset_test} ${output_dir}
+echo python sdp/sup_parser_baseline_random.py en ${input_dataset_test}  ${input_dataset_test} ${output_dir}
+python sdp/sup_parser_baseline_random.py en ${input_dataset_test}  ${input_dataset_test} ${output_dir}
 
 # validate output
 python validator.py en ${output_dir}/output.json

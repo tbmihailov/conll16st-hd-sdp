@@ -20,16 +20,16 @@ echo '==============TRAIN======================='
 echo '=========================================='
 mode=train
 dataset_name=${input_dataset_train_short_name}
-echo python sup_parser_v2_hierarchy_ext.py en ${input_dataset_train}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features} -dataset_name:${dataset_name}
-python sup_parser_v2_hierarchy_ext.py en ${input_dataset_train}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features} -dataset_name:${dataset_name}
+echo python sdp/sup_parser_v2_hierarchy_ext.py en ${input_dataset_train}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features} -dataset_name:${dataset_name}
+python sdp/sup_parser_v2_hierarchy_ext.py en ${input_dataset_train}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features} -dataset_name:${dataset_name}
 
 echo '=========================================='
 echo '==============TEST========================'
 echo '=========================================='
 mode=test
 dataset_name=${input_dataset_test_short_name}
-echo python sup_parser_v2_hierarchy_ext.py en ${input_dataset_test}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features} -dataset_name:${dataset_name}
-python sup_parser_v2_hierarchy_ext.py en ${input_dataset_test}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features} -dataset_name:${dataset_name}
+echo python sdp/sup_parser_v2_hierarchy_ext.py en ${input_dataset_test}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features} -dataset_name:${dataset_name}
+python sdp/sup_parser_v2_hierarchy_ext.py en ${input_dataset_test}  ${model_dir} ${output_dir} -run_name:${run_name} -cmd:${mode} -word2vec_model:${word2vec_model} -word2vec_load_bin:${word2vec_load_bin} -scale_features:${scale_features} -dataset_name:${dataset_name}
 
 
 # validate output

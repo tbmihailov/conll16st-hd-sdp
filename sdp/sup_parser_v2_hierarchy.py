@@ -490,7 +490,7 @@ logger.addHandler(consoleHandler)
 
 # SAMPLE RUN:
 # TRAIN:
-# python sup_parser_v1.py en [dataset_folder_here] [model_folder_ghere] [output_dir_here] -run_name:sup_v1 -cmd:train -word2vec_model:""
+# python sdp/sup_parser_v1.py en [dataset_folder_here] [model_folder_ghere] [output_dir_here] -run_name:sup_v1 -cmd:train -word2vec_model:""
 #
 #
 
