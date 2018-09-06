@@ -1,6 +1,6 @@
 Repo for CoNLL 2016 Shared Task on Shallow Discourse Parsing
 ---------------------------------------------
-Repository for the CoNLL 2016 shared task of Shallow Discourse Parsing (http://www.cs.brandeis.edu/~clp/conll16st/) 
+Repository for participation in the CoNLL 2016 shared task of Shallow Discourse Parsing (http://www.cs.brandeis.edu/~clp/conll16st/)
 
 Contains code used for the paper: [Discourse Relation Sense Classification Using Cross-argument Semantic Similarity Based on Word Embeddings](http://www.aclweb.org/anthology/K16-2014)
 ```
@@ -15,6 +15,41 @@ Contains code used for the paper: [Discourse Relation Sense Classification Using
   url = {https://aclweb.org/anthology/K/K16/K16-2014.pdf}
 }
 ```
+
+
+## Setup environment
+
+### Create virtual environment
+
+```bash
+virtualenv venv
+```
+
+Activate the environment:
+```bash
+cd venv
+source bin/activate
+```
+
+### Install everything from requirements.txt
+```
+pip install -r requirements.txt
+```
+
+## Get the data!
+In the current repository we have only the public dev set.
+To get the training data, you need to obtain the shared task data from here:
+http://www.cs.brandeis.edu/~clp/conll16st/dataset.html
+
+## Run experiments with the Feature-based model
+
+1. Update the paths to the training and evaluation data in a copy of `scripts/sup_parser_v2_hierarchy_ext_run_dev2016_dev2016.sh`
+2. Run
+
+```
+bash scripts/sup_parser_v2_hierarchy_ext_run_dev2016_dev2016.sh
+```
+
 
 CoNLL 2016 Shared Task - how to from the official documentation
 ---------------------------------------------------------------
